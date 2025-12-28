@@ -22,7 +22,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
   const [activeSiteId, setActiveSiteId] = useState<string | null>(null);
 
   // États Formulaires
-  const [newSite, setNewSite] = useState({ name: '', type: 'CHU', supervisor: '', capacity: '3' });
+  const [newSite, setNewSite] = useState({ name: '', type: 'CHU', supervisor: '', capacity: '3', location: '', phone: '', email: '' });
   const [newResident, setNewResident] = useState({ firstName: '', lastName: '', email: '' });
 
   // Fetch data
@@ -97,9 +97,11 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
           name: newSite.name,
           type: newSite.type,
           supervisor: newSite.supervisor,
-          duration: '6 mois',
           equipment: ['Scanner', 'Échographie'],
-          capacity: `${newSite.capacity} places`,
+          capacity: newSite.capacity,
+          location: newSite.location,
+          phone: newSite.phone,
+          email: newSite.email,
           status: 'available'
         }
       ]);
@@ -108,7 +110,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
 
       fetchData(); // Refresh
       setIsAddSiteModalOpen(false);
-      setNewSite({ name: '', type: 'CHU', supervisor: '', capacity: '3' });
+      setNewSite({ name: '', type: 'CHU', supervisor: '', capacity: '3', location: '', phone: '', email: '' });
     } catch (error) {
       console.error('Error adding site:', error);
       alert('Erreur lors de la création du site');
@@ -257,6 +259,36 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                   onChange={e => setNewSite({ ...newSite, supervisor: e.target.value })}
                 />
               </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Localisation / Adresse</label>
+                <input
+                  className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
+                  placeholder="ex: Boulevard de la Paix, Lomé"
+                  value={newSite.location}
+                  onChange={e => setNewSite({ ...newSite, location: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Téléphone</label>
+                  <input
+                    className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
+                    placeholder="ex: +228 22 21 ..."
+                    value={newSite.phone}
+                    onChange={e => setNewSite({ ...newSite, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Email</label>
+                  <input
+                    type="email"
+                    className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
+                    placeholder="ex: contact@chu.tg"
+                    value={newSite.email}
+                    onChange={e => setNewSite({ ...newSite, email: e.target.value })}
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Type d'établissement</label>
@@ -272,7 +304,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Places Disponibles</label>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Capacité (Lits/Postes)</label>
                   <input
                     type="number"
                     className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
@@ -426,10 +458,43 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                     </div>
                     <button
                       onClick={() => navigate(`/sites/${site.id}`)}
-                      className="w-full mt-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-primary hover:border-primary transition-all text-[10px] font-black uppercase tracking-widest"
+                      className="w-full mt-8 py-4 rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all text-[10px] font-black uppercase tracking-widest"
                     >
-                      Consulter les Détails & Résidents
+                      Consulter Détails & Liste des Résidents
                     </button>
+                  </div>
+                )}
+
+                {/* DETAILED INFO (Location, Contact) */}
+                {id && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                    <div className="flex items-center gap-4 bg-background-dark/20 p-5 rounded-[2rem] border border-white/5">
+                      <div className="size-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-2xl">location_on</span>
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-black text-slate-600 uppercase">Adresse</p>
+                        <p className="text-[11px] font-black text-white">{site.location || 'Non renseigné'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 bg-background-dark/20 p-5 rounded-[2rem] border border-white/5">
+                      <div className="size-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-2xl">call</span>
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-black text-slate-600 uppercase">Contact</p>
+                        <p className="text-[11px] font-black text-white">{site.phone || 'Non renseigné'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 bg-background-dark/20 p-5 rounded-[2rem] border border-white/5">
+                      <div className="size-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-2xl">mail</span>
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-black text-slate-600 uppercase">Email</p>
+                        <p className="text-[11px] font-black text-white truncate max-w-[150px]">{site.email || 'Non renseigné'}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -489,19 +554,21 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                 )}
 
                 {/* Footer Carte Site */}
-                <div className={`grid grid-cols-2 gap-6 mt-auto pt-6 border-t border-white/5 ${!id ? 'opacity-50' : ''}`}>
+                <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mt-auto pt-6 border-t border-white/5 ${!id ? 'opacity-50' : ''}`}>
                   <div className="flex items-center gap-4">
-                    <span className="material-symbols-outlined text-slate-500">meeting_room</span>
+                    <span className="material-symbols-outlined text-slate-500">groups</span>
                     <div>
-                      <p className="text-[8px] font-black text-slate-600 uppercase">Capacité</p>
-                      <p className="text-sm font-black text-white">{site.capacity}</p>
+                      <p className="text-[8px] font-black text-slate-600 uppercase">Occupation Actuelle</p>
+                      <p className="text-sm font-black text-white">{site.residents.length} / {site.capacity} résidents</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="material-symbols-outlined text-slate-500">calendar_month</span>
+                    <span className="material-symbols-outlined text-slate-500">pie_chart</span>
                     <div>
-                      <p className="text-[8px] font-black text-slate-600 uppercase">Rotation</p>
-                      <p className="text-sm font-black text-white">{site.duration}</p>
+                      <p className="text-[8px] font-black text-slate-600 uppercase">Taux d'occupation</p>
+                      <p className="text-sm font-black text-white">
+                        {Math.round((site.residents.length / parseInt(site.capacity || '1')) * 100)}%
+                      </p>
                     </div>
                   </div>
                 </div>

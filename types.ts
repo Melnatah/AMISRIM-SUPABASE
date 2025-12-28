@@ -38,6 +38,9 @@ export interface Site {
   equipment: string[];
   capacity: string;
   status: 'available' | 'occupied' | 'full';
+  location?: string;
+  phone?: string;
+  email?: string;
   residents: Resident[];
 }
 
