@@ -1,0 +1,8 @@
+{
+  "name": "AMIS RIM TOGO - Portail des Résidents en Radiologie",
+  "description": "Portail communautaire et académique pour les résidents en radiologie du Togo. Gestion de cursus, sites de stage et ressources éducatives.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
