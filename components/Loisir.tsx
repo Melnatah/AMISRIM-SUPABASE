@@ -117,13 +117,15 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
    const deleteEvent = async (id: string) => {
       if (window.confirm("Supprimer cette activité ?")) {
-         await supabase.from('leisure_events').delete().eq('id', id);
+         const { error } = await supabase.from('leisure_events').delete().eq('id', id);
+         if (error) alert("Erreur : " + error.message);
       }
    };
 
    const deleteFund = async (id: string, title: string) => {
       if (window.confirm(`Supprimer la caisse "${title}" ?`)) {
-         await supabase.from('leisure_funds').delete().eq('id', id);
+         const { error } = await supabase.from('leisure_funds').delete().eq('id', id);
+         if (error) alert("Erreur : " + error.message);
       }
    };
 
@@ -139,7 +141,11 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
    const deleteContribution = async (contribId: string, fundId: string, amount: number) => {
       if (!window.confirm("Annuler ce versement ?")) return;
       const fund = funds.find(f => f.id === fundId);
-      await supabase.from('leisure_contributions').delete().eq('id', contribId);
+      const { error } = await supabase.from('leisure_contributions').delete().eq('id', contribId);
+      if (error) {
+         alert("Erreur : " + error.message);
+         return;
+      }
       if (fund) {
          await supabase.from('leisure_funds').update({ current_amount: Math.max(0, Number(fund.currentAmount) - amount) }).eq('id', fundId);
       }

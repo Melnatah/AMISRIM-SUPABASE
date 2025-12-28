@@ -183,11 +183,16 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
     if (!isAdmin) return;
     if (window.confirm("Voulez-vous retirer ce résident de ce site ?")) {
       try {
-        await supabase
+        const { error } = await supabase
           .from('profiles')
           .update({ hospital: null })
           .eq('id', residentId);
-        fetchData();
+
+        if (error) {
+          alert("Erreur lors du retrait du résident : " + error.message);
+        } else {
+          fetchData();
+        }
       } catch (e) {
         console.error(e);
       }
@@ -198,8 +203,12 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
     if (!isAdmin) return;
     if (window.confirm("Supprimer définitivement ce centre hospitalier de la liste ?")) {
       try {
-        await supabase.from('sites').delete().eq('id', siteId);
-        fetchData();
+        const { error } = await supabase.from('sites').delete().eq('id', siteId);
+        if (error) {
+          alert("Erreur lors de la suppression : " + error.message);
+        } else {
+          fetchData();
+        }
       } catch (e) {
         console.error(e);
       }

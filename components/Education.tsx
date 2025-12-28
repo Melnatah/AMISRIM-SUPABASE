@@ -197,20 +197,32 @@ const Education: React.FC<EducationProps> = ({ user }) => {
 
    const handleDeleteSubject = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      await supabase.from('subjects').delete().eq('id', id);
-      fetchData();
+      const { error } = await supabase.from('subjects').delete().eq('id', id);
+      if (error) {
+         alert("Erreur lors de la suppression : " + error.message);
+      } else {
+         fetchData();
+      }
    };
 
    const handleDeleteModule = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      await supabase.from('modules').delete().eq('id', id);
-      fetchData();
+      const { error } = await supabase.from('modules').delete().eq('id', id);
+      if (error) {
+         alert("Erreur lors de la suppression : " + error.message);
+      } else {
+         fetchData();
+      }
    };
 
    const handleDeleteFile = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      await supabase.from('files').delete().eq('id', id);
-      fetchData();
+      const { error } = await supabase.from('files').delete().eq('id', id);
+      if (error) {
+         alert("Erreur lors de la suppression : " + error.message);
+      } else {
+         fetchData();
+      }
    };
 
    const handleDownload = (url: string, name: string) => {
