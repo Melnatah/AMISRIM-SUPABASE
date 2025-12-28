@@ -15,7 +15,7 @@ const chartData = [
 ];
 
 interface DashboardProps {
-  user: { name: string };
+  user: { id: string, name: string, role: 'admin' | 'resident' };
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ user }) => {

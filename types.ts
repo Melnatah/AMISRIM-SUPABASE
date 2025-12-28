@@ -68,6 +68,15 @@ export interface LeisureFund {
   targetAmount: number;
   currentAmount: number;
   type: 'voyage' | 'pique-nique' | 'fete';
+  eventId?: string;
+}
+export interface LeisureParticipant {
+  id: string;
+  eventId: string;
+  profileId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  firstName: string;
+  lastName: string;
 }
 
 export interface LeisureEvent {
@@ -83,6 +92,7 @@ export interface LeisureEvent {
   pendingResidents: string[]; // Liste des noms des résidents en attente
   status: 'planning' | 'open' | 'completed' | 'cancelled';
   imageUrl?: string;
+  participants: LeisureParticipant[];
 }
 
 export interface EducationFile {

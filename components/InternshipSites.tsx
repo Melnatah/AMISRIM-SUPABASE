@@ -4,7 +4,7 @@ import { Site, Resident } from '../types';
 import { supabase } from '../services/supabase';
 
 interface InternshipSitesProps {
-  user: { role: 'admin' | 'resident' };
+  user: { id: string, name: string, role: 'admin' | 'resident' };
 }
 
 const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {

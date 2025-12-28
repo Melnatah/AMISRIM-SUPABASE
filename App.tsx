@@ -18,6 +18,7 @@ import { Site } from './types';
 import { supabase } from './services/supabase';
 
 interface User {
+  id: string;
   name: string;
   role: 'admin' | 'resident';
 }
@@ -39,7 +40,7 @@ const App: React.FC = () => {
       const initialRole = session.user.email?.includes('admin') ? 'admin' : 'resident';
 
       // Set initial user state immediately from auth metadata to unblock the UI
-      setUser({ name: initialName, role: initialRole as 'admin' | 'resident' });
+      setUser({ id: session.user.id, name: initialName, role: initialRole as 'admin' | 'resident' });
 
       // Then try to enrich with profile data
       try {
@@ -52,7 +53,7 @@ const App: React.FC = () => {
         if (profile && !error) {
           const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || initialName;
           const role = (profile.role === 'admin' || profile.role === 'resident') ? profile.role : initialRole;
-          setUser({ name, role: role as 'admin' | 'resident' });
+          setUser({ id: session.user.id, name, role: role as 'admin' | 'resident' });
         }
       } catch (err) {
         console.error("Error fetching profile enrichment:", err);

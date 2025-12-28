@@ -7,7 +7,7 @@ import { supabase } from '../services/supabase';
 type Category = 'cours' | 'staff' | 'epu' | 'diu';
 
 interface EducationProps {
-   user: { role: 'admin' | 'resident' };
+   user: { id: string, name: string, role: 'admin' | 'resident' };
 }
 
 const Education: React.FC<EducationProps> = ({ user }) => {

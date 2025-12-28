@@ -8,7 +8,7 @@ type EventType = 'voyage' | 'pique-nique' | 'fete';
 type ViewTab = 'explorer' | 'gestion';
 
 interface LoisirProps {
-   user: { name: string, role: 'admin' | 'resident' };
+   user: { id: string, name: string, role: 'admin' | 'resident' };
 }
 
 const Loisir: React.FC<LoisirProps> = ({ user }) => {
@@ -37,6 +37,11 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
    const [selectedFund, setSelectedFund] = useState<LeisureFund | null>(null);
    const [contributionAmount, setContributionAmount] = useState('');
 
+   const [profiles, setProfiles] = useState<any[]>([]);
+   const [selectedEventForFinance, setSelectedEventForFinance] = useState<string | null>(null);
+   const [manualContribution, setManualContribution] = useState({ profileId: '', amount: '' });
+   const [eventImage, setEventImage] = useState<File | null>(null);
+
    const [newEvent, setNewEvent] = useState({
       title: '', type: 'voyage' as EventType, date: '', location: '', description: '', costPerPerson: '', maxParticipants: '', imageUrl: ''
    });
@@ -48,19 +53,36 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
          setLoading(true);
          const { data: eventsData } = await supabase.from('leisure_events').select('*').order('created_at', { ascending: false });
          const { data: fundsData } = await supabase.from('leisure_funds').select('*');
-         const { data: contribData } = await supabase.from('leisure_contributions').select('*').order('contribution_date', { ascending: false }).limit(20);
+         const { data: contribData } = await supabase.from('leisure_contributions').select('*').order('contribution_date', { ascending: false }).limit(50);
+         const { data: participantsData } = await supabase.from('leisure_participants').select('*, profiles(first_name, last_name)');
+
+         const mappedParticipants = (participantsData || []).map((p: any) => ({
+            id: p.id,
+            eventId: p.event_id,
+            profileId: p.profile_id,
+            status: p.status,
+            firstName: p.profiles?.first_name || '',
+            lastName: p.profiles?.last_name || ''
+         }));
 
          setEvents((eventsData || []).map(e => ({
             id: e.id, title: e.title, type: e.type, date: e.event_date, location: e.location, description: e.description,
             costPerPerson: e.cost_per_person, maxParticipants: e.max_participants, registeredParticipants: e.registered_participants,
-            pendingResidents: e.pending_residents || [], status: e.status, imageUrl: e.image_url
+            status: e.status, imageUrl: e.image_url,
+            participants: mappedParticipants.filter(p => p.eventId === e.id)
          })));
 
          setFunds((fundsData || []).map(f => ({
-            id: f.id, title: f.title, targetAmount: f.target_amount, currentAmount: f.current_amount, type: f.type
+            id: f.id, title: f.title, targetAmount: f.target_amount, currentAmount: f.current_amount, type: f.type, eventId: f.event_id,
+            eventLink: f.event_id ? `/loisir/${f.type}/${f.event_id}` : undefined
          })));
 
          setContributions(contribData || []);
+
+         if (isAdmin) {
+            const { data: profData } = await supabase.from('profiles').select('id, first_name, last_name').eq('status', 'approved');
+            setProfiles(profData || []);
+         }
       } catch (error) {
          console.error(error);
       } finally {
@@ -74,45 +96,109 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
          .on('postgres_changes', { event: '*', schema: 'public', table: 'leisure_events' }, fetchData)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'leisure_funds' }, fetchData)
          .on('postgres_changes', { event: '*', schema: 'public', table: 'leisure_contributions' }, fetchData)
+         .on('postgres_changes', { event: '*', schema: 'public', table: 'leisure_participants' }, fetchData)
          .subscribe();
       return () => { supabase.removeChannel(channel); };
    }, []);
 
-   const handleRegister = async (id: string) => {
-      const event = events.find(e => e.id === id);
-      if (!event || event.pendingResidents.includes(user.name)) return;
-      const updatedPending = [...event.pendingResidents, user.name];
-      await supabase.from('leisure_events').update({ pending_residents: updatedPending }).eq('id', id);
-      alert("Demande envoyée !");
-   };
-
-   const approveRegistration = async (eventId: string, residentName: string) => {
-      const event = events.find(e => e.id === eventId);
-      if (!event || (event.maxParticipants && event.registeredParticipants >= event.maxParticipants)) return;
-      await supabase.from('leisure_events').update({
-         pending_residents: event.pendingResidents.filter(n => n !== residentName),
-         registered_participants: event.registeredParticipants + 1
-      }).eq('id', eventId);
-   };
-
-   const rejectRegistration = async (eventId: string, residentName: string) => {
+   const handleRegister = async (eventId: string) => {
       const event = events.find(e => e.id === eventId);
       if (!event) return;
-      await supabase.from('leisure_events').update({
-         pending_residents: event.pendingResidents.filter(n => n !== residentName)
-      }).eq('id', eventId);
+
+      const isAlreadyParticipant = event.participants.some(p => p.profileId === user.id);
+      if (isAlreadyParticipant) {
+         alert("Vous avez déjà soumis une demande pour cette activité.");
+         return;
+      }
+
+      const { error } = await supabase.from('leisure_participants').insert([{
+         event_id: eventId,
+         profile_id: user.id,
+         status: 'pending'
+      }]);
+
+      if (error) {
+         alert("Erreur lors de l'inscription : " + error.message);
+      } else {
+         alert("Demande envoyée ! En attente de validation par l'administrateur.");
+         fetchData();
+      }
+   };
+
+   const updateParticipantStatus = async (participantId: string, eventId: string, newStatus: 'approved' | 'rejected') => {
+      const { error } = await supabase
+         .from('leisure_participants')
+         .update({ status: newStatus })
+         .eq('id', participantId);
+
+      if (error) {
+         alert("Erreur : " + error.message);
+         return;
+      }
+
+      if (newStatus === 'approved') {
+         const event = events.find(e => e.id === eventId);
+         if (event) {
+            await supabase.from('leisure_events').update({
+               registered_participants: event.registeredParticipants + 1
+            }).eq('id', eventId);
+         }
+      }
+
+      fetchData();
    };
 
    const handleCreateEvent = async (e: React.FormEvent) => {
       e.preventDefault();
-      await supabase.from('leisure_events').insert([{
-         title: newEvent.title, type: newEvent.type, event_date: newEvent.date, location: newEvent.location || 'À définir',
-         description: newEvent.description, cost_per_person: parseInt(newEvent.costPerPerson) || 0,
-         max_participants: parseInt(newEvent.maxParticipants) || null, registered_participants: 0, status: 'open',
-         image_url: newEvent.imageUrl || 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000'
-      }]);
-      setIsAddEventOpen(false);
-      setNewEvent({ title: '', type: 'voyage', date: '', location: '', description: '', costPerPerson: '', maxParticipants: '', imageUrl: '' });
+      try {
+         let finalImageUrl = newEvent.imageUrl || 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000';
+
+         if (eventImage) {
+            const fileExt = eventImage.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `events/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+               .from('education') // Utilisation du bucket existant pour simplifier, ou à modifier si un bucket 'leisure' est créé
+               .upload(filePath, eventImage);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+               .from('education')
+               .getPublicUrl(filePath);
+
+            finalImageUrl = publicUrl;
+         }
+
+         const { data: eventData, error: eventError } = await supabase.from('leisure_events').insert([{
+            title: newEvent.title, type: newEvent.type, event_date: newEvent.date, location: newEvent.location || 'À définir',
+            description: newEvent.description, cost_per_person: parseInt(newEvent.costPerPerson) || 0,
+            max_participants: parseInt(newEvent.maxParticipants) || null, registered_participants: 0, status: 'open',
+            image_url: finalImageUrl
+         }]).select();
+
+         if (eventError) throw eventError;
+
+         const createdEvent = eventData?.[0];
+         if (createdEvent && (parseInt(newEvent.costPerPerson) > 0)) {
+            // Create a linked fund automatically
+            await supabase.from('leisure_funds').insert([{
+               title: `Caisse: ${createdEvent.title}`,
+               target_amount: (parseInt(newEvent.costPerPerson) || 0) * (parseInt(newEvent.maxParticipants) || 10),
+               current_amount: 0,
+               type: createdEvent.type,
+               event_id: createdEvent.id
+            }]);
+         }
+
+         setIsAddEventOpen(false);
+         setNewEvent({ title: '', type: 'voyage', date: '', location: '', description: '', costPerPerson: '', maxParticipants: '', imageUrl: '' });
+         setEventImage(null);
+         fetchData();
+      } catch (error: any) {
+         alert("Erreur lors de la création : " + error.message);
+      }
    };
 
    const deleteEvent = async (id: string) => {
@@ -136,6 +222,34 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
       await supabase.from('leisure_funds').update({ current_amount: Number(selectedFund.currentAmount) + val }).eq('id', selectedFund.id);
       setIsFundOpen(false);
       setContributionAmount('');
+   };
+
+   const addManualContribution = async () => {
+      if (!selectedEventForFinance || !manualContribution.profileId || !manualContribution.amount) return;
+      const fund = funds.find(f => f.eventId === selectedEventForFinance);
+      if (!fund) {
+         alert("Aucune caisse n'est liée à cette activité.");
+         return;
+      }
+
+      const profile = profiles.find(p => p.id === manualContribution.profileId);
+      const name = profile ? `${profile.first_name} ${profile.last_name}` : 'Inconnu';
+      const val = parseInt(manualContribution.amount);
+
+      const { error } = await supabase.from('leisure_contributions').insert([{
+         fund_id: fund.id,
+         resident_name: name,
+         amount: val
+      }]);
+
+      if (!error) {
+         await supabase.from('leisure_funds').update({ current_amount: Number(fund.currentAmount) + val }).eq('id', fund.id);
+         setManualContribution({ profileId: '', amount: '' });
+         fetchData();
+         alert("Cotisation ajoutée !");
+      } else {
+         alert("Erreur: " + error.message);
+      }
    };
 
    const deleteContribution = async (contribId: string, fundId: string, amount: number) => {
@@ -174,7 +288,34 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                         <input type="date" className="bg-black/50 border border-white/10 rounded-xl p-4" value={newEvent.date} onChange={e => setNewEvent({ ...newEvent, date: e.target.value })} />
                         <input className="bg-black/50 border border-white/10 rounded-xl p-4" placeholder="Lieu..." value={newEvent.location} onChange={e => setNewEvent({ ...newEvent, location: e.target.value })} />
                      </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <input type="number" className="bg-black/50 border border-white/10 rounded-xl p-4" placeholder="Coût par personne (FCFA)..." value={newEvent.costPerPerson} onChange={e => setNewEvent({ ...newEvent, costPerPerson: e.target.value })} />
+                        <input type="number" className="bg-black/50 border border-white/10 rounded-xl p-4" placeholder="Max Participants..." value={newEvent.maxParticipants} onChange={e => setNewEvent({ ...newEvent, maxParticipants: e.target.value })} />
+                     </div>
                      <textarea className="w-full bg-black/50 border border-white/10 rounded-xl p-4 h-24" placeholder="Description..." value={newEvent.description} onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} />
+                     <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Image de l'activité</label>
+                        <div className="flex gap-4 items-center">
+                           <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="flex-1 py-4 bg-white/5 border border-white/10 rounded-xl text-slate-400 text-[10px] font-black uppercase hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                           >
+                              <span className="material-symbols-outlined text-sm">image</span>
+                              {eventImage ? eventImage.name : "Choisir une image"}
+                           </button>
+                           {eventImage && (
+                              <button type="button" onClick={() => setEventImage(null)} className="text-red-500 material-symbols-outlined">close</button>
+                           )}
+                        </div>
+                        <input
+                           type="file"
+                           ref={fileInputRef}
+                           hidden
+                           accept="image/*"
+                           onChange={(e) => setEventImage(e.target.files?.[0] || null)}
+                        />
+                     </div>
                      <div className="flex gap-4">
                         <button type="button" onClick={() => setIsAddEventOpen(false)} className="flex-1 py-4 border border-white/10 rounded-xl">Annuler</button>
                         <button type="submit" className="flex-1 py-4 bg-primary rounded-xl">Publier</button>
@@ -229,44 +370,232 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                     {filteredEvents.map(e => (
-                        <div key={e.id} className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden group hover:border-primary/50 transition-all border-transparent">
-                           <div className="relative h-60">
-                              <img src={e.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/95 to-transparent" />
-                              <div className="absolute bottom-6 left-6 right-6">
-                                 <span className="bg-primary/20 text-primary text-[8px] font-black px-3 py-1 rounded-full uppercase mb-2 inline-block border border-primary/20">{e.type}</span>
-                                 <h3 className="text-xl font-black text-white uppercase">{e.title}</h3>
+                     {filteredEvents.map(e => {
+                        const userParticipant = e.participants.find(p => p.profileId === user.id);
+                        return (
+                           <div key={e.id} className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden group hover:border-primary/50 transition-all border-transparent">
+                              <div className="relative h-60">
+                                 <img src={e.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+                                 <div className="absolute inset-0 bg-gradient-to-t from-black/95 to-transparent" />
+                                 <div className="absolute bottom-6 left-6 right-6">
+                                    <div className="flex justify-between items-end">
+                                       <div>
+                                          <span className="bg-primary/20 text-primary text-[8px] font-black px-3 py-1 rounded-full uppercase mb-2 inline-block border border-primary/20">{e.type}</span>
+                                          <h3 className="text-xl font-black text-white uppercase">{e.title}</h3>
+                                       </div>
+                                       {userParticipant && (
+                                          <span className={`text-[8px] font-black px-3 py-1 rounded-full uppercase border ${userParticipant.status === 'approved' ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/20' :
+                                             userParticipant.status === 'rejected' ? 'bg-red-500/20 text-red-500 border-red-500/20' :
+                                                'bg-amber-500/20 text-amber-500 border-amber-500/20'
+                                             }`}>
+                                             {userParticipant.status === 'approved' ? 'Inscrit' : userParticipant.status === 'rejected' ? 'Refusé' : 'En attente'}
+                                          </span>
+                                       )}
+                                    </div>
+                                 </div>
+                              </div>
+                              <div className="p-8">
+                                 <div className="flex justify-between text-[11px] font-bold text-slate-300 mb-6 uppercase">
+                                    <span>{e.date} • {e.location}</span>
+                                    <span className="text-primary">{e.registeredParticipants} / {e.maxParticipants || '∞'} PLACES</span>
+                                 </div>
+                                 <button
+                                    disabled={!!userParticipant && userParticipant.status !== 'rejected'}
+                                    onClick={() => handleRegister(e.id)}
+                                    className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase text-white transition-all ${userParticipant ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-primary hover:bg-primary-dark'
+                                       }`}
+                                 >
+                                    {userParticipant ? 'Demande envoyée' : "S'inscrire"}
+                                 </button>
                               </div>
                            </div>
-                           <div className="p-8">
-                              <div className="flex justify-between text-[11px] font-bold text-slate-300 mb-6 uppercase">
-                                 <span>{e.date} • {e.location}</span>
-                                 <span className="text-primary">{e.registeredParticipants} / {e.maxParticipants || '∞'} PLACES</span>
-                              </div>
-                              <button onClick={() => handleRegister(e.id)} className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase text-white hover:bg-primary transition-all">S'inscrire</button>
-                           </div>
-                        </div>
-                     ))}
+                        );
+                     })}
                   </div>
                </div>
             ) : (
                <div className="space-y-10 animate-in fade-in">
+                  {/* Gestion Financière par Activité */}
+                  <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden">
+                     <div className="px-10 py-8 border-b border-white/5 bg-background-dark/20 flex justify-between items-center">
+                        <h3 className="text-white font-black text-sm uppercase">Détails Financiers par Activité</h3>
+                        <div className="flex gap-4">
+                           <select
+                              className="bg-black/50 border border-white/5 rounded-xl px-4 py-2 text-[10px] font-black text-white uppercase outline-none"
+                              value={selectedEventForFinance || ''}
+                              onChange={(e) => setSelectedEventForFinance(e.target.value)}
+                           >
+                              <option value="">Sélectionner une activité...</option>
+                              {events.map(e => (
+                                 <option key={e.id} value={e.id}>{e.title}</option>
+                              ))}
+                           </select>
+                        </div>
+                     </div>
+
+                     {selectedEventForFinance ? (
+                        <div className="p-10 space-y-8">
+                           {/* Stats rapides pour l'activité */}
+                           {(() => {
+                              const fund = funds.find(f => f.eventId === selectedEventForFinance);
+                              const event = events.find(e => e.id === selectedEventForFinance);
+                              if (!fund || !event) return <p className="text-slate-500 font-bold italic uppercase text-[10px]">Aucune caisse liée à cette activité.</p>;
+
+                              const eventContribs = contributions.filter(c => c.fund_id === fund.id);
+
+                              return (
+                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                                    <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                                       <p className="text-[8px] font-black text-slate-500 uppercase mb-2">Total Collecté</p>
+                                       <p className="text-2xl font-black text-emerald-500">{fund.currentAmount.toLocaleString()} FCFA</p>
+                                    </div>
+                                    <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                                       <p className="text-[8px] font-black text-slate-500 uppercase mb-2">Objectif (Basé sur max participants)</p>
+                                       <p className="text-2xl font-black text-white">{fund.targetAmount.toLocaleString()} FCFA</p>
+                                    </div>
+                                    <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                                       <p className="text-[8px] font-black text-slate-500 uppercase mb-2">Taux de recouvrement</p>
+                                       <p className="text-2xl font-black text-primary">{Math.round((fund.currentAmount / (fund.targetAmount || 1)) * 100)}%</p>
+                                    </div>
+                                 </div>
+                              );
+                           })()}
+
+                           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                              {/* Formulaire ajout manuel */}
+                              <div className="lg:col-span-1 space-y-6 bg-black/20 p-8 rounded-3xl border border-white/5">
+                                 <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Enregistrer une cotisation</h4>
+                                 <div className="space-y-4">
+                                    <select
+                                       className="w-full bg-surface-dark border border-white/10 rounded-xl p-4 text-white text-xs"
+                                       value={manualContribution.profileId}
+                                       onChange={(e) => setManualContribution({ ...manualContribution, profileId: e.target.value })}
+                                    >
+                                       <option value="">Choisir un résident...</option>
+                                       {profiles.map(p => (
+                                          <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>
+                                       ))}
+                                    </select>
+                                    <input
+                                       type="number"
+                                       placeholder="Montant (FCFA)"
+                                       className="w-full bg-surface-dark border border-white/10 rounded-xl p-4 text-white text-xs"
+                                       value={manualContribution.amount}
+                                       onChange={(e) => setManualContribution({ ...manualContribution, amount: e.target.value })}
+                                    />
+                                    <button
+                                       onClick={addManualContribution}
+                                       className="w-full py-4 bg-emerald-500 text-white rounded-xl font-black uppercase text-[10px] shadow-lg shadow-emerald-500/20"
+                                    >
+                                       Ajouter le versement
+                                    </button>
+                                 </div>
+                              </div>
+
+                              {/* Liste des versements pour cette activité */}
+                              <div className="lg:col-span-2">
+                                 <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-6">Historique des versements</h4>
+                                 <div className="overflow-hidden rounded-2xl border border-white/5">
+                                    <table className="w-full text-left text-xs text-white">
+                                       <thead><tr className="bg-white/5 font-black text-[9px] text-slate-500 uppercase"><th className="px-6 py-4">Résident</th><th className="px-6 py-4">Montant</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
+                                       <tbody className="divide-y divide-white/5 font-bold">
+                                          {(() => {
+                                             const fund = funds.find(f => f.eventId === selectedEventForFinance);
+                                             const eventContribs = contributions.filter(c => c.fund_id === fund?.id);
+                                             if (eventContribs.length === 0) return <tr><td colSpan={3} className="px-6 py-8 text-center text-slate-600 uppercase text-[10px]">Aucun versement enregistré</td></tr>;
+                                             return eventContribs.map(c => (
+                                                <tr key={c.id}>
+                                                   <td className="px-6 py-4 uppercase text-primary text-[10px]">{c.resident_name}</td>
+                                                   <td className="px-6 py-4">{c.amount.toLocaleString()} FCFA</td>
+                                                   <td className="px-6 py-4 text-right">
+                                                      <button
+                                                         onClick={() => deleteContribution(c.id, fund!.id, c.amount)}
+                                                         className="text-red-500/50 hover:text-red-500"
+                                                      >
+                                                         <span className="material-symbols-outlined text-sm">delete</span>
+                                                      </button>
+                                                   </td>
+                                                </tr>
+                                             ));
+                                          })()}
+                                       </tbody>
+                                    </table>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     ) : (
+                        <div className="p-20 text-center">
+                           <span className="material-symbols-outlined text-5xl text-slate-700 mb-4">payments</span>
+                           <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Sélectionnez une activité pour gérer ses cotisations</p>
+                        </div>
+                     )}
+                  </div>
+
+                  {/* Gestion des Inscriptions */}
+                  <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden">
+                     <div className="px-10 py-8 border-b border-white/5">
+                        <h3 className="text-white font-black text-sm uppercase">Demandes d'inscription en attente</h3>
+                     </div>
+                     <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs text-white">
+                           <thead><tr className="bg-black/20 font-black text-[9px] text-slate-500 uppercase"><th className="px-10 py-5">Résident</th><th className="px-6 py-5">Activité</th><th className="px-6 py-5">Date Demande</th><th className="px-10 py-5 text-right">Décision</th></tr></thead>
+                           <tbody className="divide-y divide-white/5">
+                              {events.flatMap(e => e.participants.filter(p => p.status === 'pending').map(p => (
+                                 <tr key={p.id} className="hover:bg-white/5">
+                                    <td className="px-10 py-6 font-black uppercase">{p.firstName} {p.lastName}</td>
+                                    <td className="px-6 py-6 uppercase text-primary font-bold">{e.title}</td>
+                                    <td className="px-6 py-6 text-slate-500">N/A</td>
+                                    <td className="px-10 py-6 text-right space-x-2">
+                                       <button onClick={() => updateParticipantStatus(p.id, e.id, 'approved')} className="bg-emerald-500/10 text-emerald-500 px-3 py-1.5 rounded-lg font-black uppercase text-[8px] hover:bg-emerald-500 hover:text-white transition-all">Accepter</button>
+                                       <button onClick={() => updateParticipantStatus(p.id, e.id, 'rejected')} className="bg-red-500/10 text-red-500 px-3 py-1.5 rounded-lg font-black uppercase text-[8px] hover:bg-red-500 hover:text-white transition-all">Refuser</button>
+                                    </td>
+                                 </tr>
+                              )))}
+                              {events.every(e => e.participants.filter(p => p.status === 'pending').length === 0) && (
+                                 <tr><td colSpan={4} className="px-10 py-10 text-center text-slate-600 font-bold uppercase tracking-widest text-[10px]">Aucune demande en attente</td></tr>
+                              )}
+                           </tbody>
+                        </table>
+                     </div>
+                  </div>
+
+                  {/* Liste des Participants Approuvés */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                     {events.filter(e => e.participants.some(p => p.status === 'approved')).map(e => (
+                        <div key={e.id} className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8">
+                           <div className="flex justify-between items-center mb-6">
+                              <h4 className="text-xs font-black text-white uppercase">{e.title} (Participants {e.registeredParticipants})</h4>
+                              <span className="text-[10px] font-black text-primary uppercase">{e.type}</span>
+                           </div>
+                           <div className="space-y-2">
+                              {e.participants.filter(p => p.status === 'approved').map(p => (
+                                 <div key={p.id} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
+                                    <span className="text-[10px] font-black text-white uppercase">{p.firstName} {p.lastName}</span>
+                                    <span className="material-symbols-outlined text-emerald-500 text-sm">verified</span>
+                                 </div>
+                              ))}
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+
+                  {/* Gestion des Activités */}
                   <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden">
                      <div className="px-10 py-8 border-b border-white/5 flex justify-between">
-                        <h3 className="text-white font-black text-sm uppercase">Activités</h3>
+                        <h3 className="text-white font-black text-sm uppercase">Toutes les Activités</h3>
                         <button onClick={() => setIsAddEventOpen(true)} className="text-[10px] font-black text-primary uppercase">+ Ajouter</button>
                      </div>
                      <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs text-white">
-                           <thead><tr className="bg-black/20 font-black text-[9px] text-slate-500 uppercase"><th className="px-10 py-5">Événement</th><th className="px-6 py-5">Type</th><th className="px-6 py-5">Places</th><th className="px-10 py-5 text-right">Actions</th></tr></thead>
+                           <thead><tr className="bg-black/20 font-black text-[9px] text-slate-500 uppercase"><th className="px-10 py-5">Événement</th><th className="px-6 py-5">Type</th><th className="px-6 py-5">Inscrits</th><th className="px-10 py-5 text-right">Actions</th></tr></thead>
                            <tbody className="divide-y divide-white/5">
                               {events.map(e => (
                                  <tr key={e.id} className="hover:bg-white/5">
-                                    <td className="px-10 py-6 font-black uppercase">{e.title}</td>
+                                    <td className="px-10 py-6 font-black uppercase font-medium">{e.title}</td>
                                     <td className="px-6 py-6 uppercase">{e.type}</td>
-                                    <td className="px-6 py-6">{e.registeredParticipants} / {e.maxParticipants || '∞'}</td>
-                                    <td className="px-10 py-6 text-right"><button onClick={() => deleteEvent(e.id)} className="text-red-500"><span className="material-symbols-outlined text-sm">delete</span></button></td>
+                                    <td className="px-6 py-6 font-black text-primary">{e.registeredParticipants} / {e.maxParticipants || '∞'}</td>
+                                    <td className="px-10 py-6 text-right"><button onClick={() => deleteEvent(e.id)} className="text-red-500 opacity-50 hover:opacity-100"><span className="material-symbols-outlined text-sm">delete</span></button></td>
                                  </tr>
                               ))}
                            </tbody>
@@ -274,18 +603,27 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                      </div>
                   </div>
 
+                  {/* Versements Récents */}
                   <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden">
-                     <div className="px-10 py-8 border-b border-white/5"><h3 className="text-white font-black text-sm uppercase">Versements Récents (Cajous)</h3></div>
+                     <div className="px-10 py-8 border-b border-white/5 flex justify-between items-center">
+                        <h3 className="text-white font-black text-sm uppercase">Versements (Cajous)</h3>
+                     </div>
                      <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs text-white">
-                           <thead><tr className="bg-black/20 font-black text-[9px] text-slate-500 uppercase"><th className="px-10 py-5">Résident</th><th className="px-6 py-5">Caisse</th><th className="px-6 py-5">Montant</th><th className="px-10 py-5 text-right">Actions</th></tr></thead>
+                           <thead><tr className="bg-black/20 font-black text-[9px] text-slate-500 uppercase"><th className="px-10 py-5">Résident</th><th className="px-6 py-5">Caisse / Activité</th><th className="px-6 py-5">Montant</th><th className="px-10 py-5 text-right">Actions</th></tr></thead>
                            <tbody className="divide-y divide-white/5">
                               {contributions.map(c => {
                                  const fund = funds.find(f => f.id === c.fund_id);
+                                 const eventLink = events.find(e => e.id === fund?.eventId);
                                  return (
                                     <tr key={c.id} className="hover:bg-white/5">
                                        <td className="px-10 py-4 font-black uppercase text-primary">{c.resident_name}</td>
-                                       <td className="px-6 py-4 uppercase text-[10px]">{fund?.title || 'Caisse supprimée'}</td>
+                                       <td className="px-6 py-4 uppercase text-[10px]">
+                                          <div className="flex flex-col">
+                                             <span className="text-white font-bold">{fund?.title || 'Caisse supprimée'}</span>
+                                             {eventLink && <span className="text-primary text-[8px] font-black uppercase mt-1">Activité: {eventLink.title}</span>}
+                                          </div>
+                                       </td>
                                        <td className="px-6 py-4 font-black">{c.amount.toLocaleString()} FCFA</td>
                                        <td className="px-10 py-4 text-right"><button onClick={() => deleteContribution(c.id, c.fund_id, c.amount)} className="text-red-500/50 hover:text-red-500"><span className="material-symbols-outlined text-sm">cancel</span></button></td>
                                     </tr>
