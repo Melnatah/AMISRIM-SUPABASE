@@ -28,29 +28,47 @@ const App: React.FC = () => {
   const [sites, setSites] = useState<Site[]>(MOCK_SITES);
 
   useEffect(() => {
+    const handleUserSession = async (session: any) => {
+      if (!session?.user) {
+        setUser(null);
+        return;
+      }
+
+      const { user_metadata } = session.user;
+      const initialName = user_metadata.full_name || user_metadata.firstName || session.user.email?.split('@')[0] || 'Utilisateur';
+      const initialRole = session.user.email?.includes('admin') ? 'admin' : 'resident';
+
+      // Set initial user state immediately from auth metadata to unblock the UI
+      setUser({ name: initialName, role: initialRole as 'admin' | 'resident' });
+
+      // Then try to enrich with profile data
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role, first_name, last_name')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile && !error) {
+          const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || initialName;
+          const role = (profile.role === 'admin' || profile.role === 'resident') ? profile.role : initialRole;
+          setUser({ name, role: role as 'admin' | 'resident' });
+        }
+      } catch (err) {
+        console.error("Error fetching profile enrichment:", err);
+      }
+    };
+
     // Check initial session
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { user_metadata } = session.user;
-        const name = user_metadata.full_name || user_metadata.firstName || session.user.email?.split('@')[0] || 'Utilisateur';
-        // Simple role check based on metadata or email
-        const role = (session.user.email?.includes('admin') || user_metadata.role === 'admin') ? 'admin' : 'resident';
-        setUser({ name, role });
-      }
+      handleUserSession(session);
     };
     checkSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        const { user_metadata } = session.user;
-        const name = user_metadata.full_name || user_metadata.firstName || session.user.email?.split('@')[0] || 'Utilisateur';
-        const role = (session.user.email?.includes('admin') || user_metadata.role === 'admin') ? 'admin' : 'resident';
-        setUser({ name, role });
-      } else {
-        setUser(null);
-      }
+      handleUserSession(session);
     });
 
     return () => {
@@ -81,12 +99,12 @@ const App: React.FC = () => {
     <Layout user={user} onLogout={handleLogout} sites={sites}>
       <Routes>
         <Route path="/" element={<Dashboard user={user} />} />
-        <Route path="/education/*" element={<Education />} />
-        <Route path="/education" element={<Education />} />
+        <Route path="/education/*" element={<Education user={user} />} />
+        <Route path="/education" element={<Education user={user} />} />
         <Route path="/sites" element={<InternshipSites user={user} />} />
         <Route path="/sites/:id" element={<InternshipSites user={user} />} />
         <Route path="/dicom" element={<DicomViewer />} />
-        <Route path="/cotisation" element={<Cotisation />} />
+        <Route path="/cotisation" element={<Cotisation user={user} />} />
         <Route path="/loisir/*" element={<Loisir user={user} />} />
         <Route path="/loisir" element={<Loisir user={user} />} />
         <Route path="/statistics" element={<Statistics />} />

@@ -3,7 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Contribution } from '../types';
 import { supabase } from '../services/supabase';
 
-const Cotisation: React.FC = () => {
+interface CotisationProps {
+  user?: { role: 'admin' | 'resident' };
+}
+
+const Cotisation: React.FC<CotisationProps> = ({ user }) => {
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -42,6 +46,18 @@ const Cotisation: React.FC = () => {
 
   useEffect(() => {
     fetchContributions();
+
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contributions' }, () => {
+        fetchContributions();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const totalFund = contributions.reduce((acc, curr) => acc + curr.amount, 0);
@@ -245,9 +261,15 @@ const Cotisation: React.FC = () => {
                       {item.amount.toLocaleString()} FCFA
                     </td>
                     <td className="py-5 px-6 text-right">
-                      <button onClick={() => deleteContribution(item.id)} className="text-red-500 hover:text-red-700">
-                        <span className="material-symbols-outlined text-sm">delete</span>
-                      </button>
+                      {user?.role === 'admin' && (
+                        <button
+                          onClick={() => deleteContribution(item.id)}
+                          className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-inner"
+                          title="Annuler (Admin)"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

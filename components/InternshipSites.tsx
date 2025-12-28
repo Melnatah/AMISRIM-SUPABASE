@@ -68,6 +68,16 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
 
   useEffect(() => {
     fetchData();
+
+    const channel = supabase
+      .channel('sites-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sites' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchData)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Filtrer les sites si un ID est présent dans l'URL
