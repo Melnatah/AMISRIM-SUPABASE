@@ -22,7 +22,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
   const [activeSiteId, setActiveSiteId] = useState<string | null>(null);
 
   // États Formulaires
-  const [newSite, setNewSite] = useState({ name: '', type: 'CHU', supervisor: '', capacity: '3', location: '', phone: '', email: '' });
+  const [newSite, setNewSite] = useState({ name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
   const [newResident, setNewResident] = useState({ firstName: '', lastName: '', email: '' });
 
   // Fetch data
@@ -98,7 +98,6 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
           type: newSite.type,
           supervisor: newSite.supervisor,
           equipment: ['Scanner', 'Échographie'],
-          capacity: newSite.capacity,
           location: newSite.location,
           phone: newSite.phone,
           email: newSite.email,
@@ -110,7 +109,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
 
       fetchData(); // Refresh
       setIsAddSiteModalOpen(false);
-      setNewSite({ name: '', type: 'CHU', supervisor: '', capacity: '3', location: '', phone: '', email: '' });
+      setNewSite({ name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
     } catch (error) {
       console.error('Error adding site:', error);
       alert('Erreur lors de la création du site');
@@ -289,7 +288,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Type d'établissement</label>
                   <select
@@ -302,16 +301,6 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                     <option value="CMA">CMA</option>
                     <option value="Clinique">Clinique</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Capacité (Lits/Postes)</label>
-                  <input
-                    type="number"
-                    className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
-                    placeholder="3"
-                    value={newSite.capacity}
-                    onChange={e => setNewSite({ ...newSite, capacity: e.target.value })}
-                  />
                 </div>
               </div>
               <div className="flex gap-3 pt-6">
@@ -430,7 +419,6 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-3">
-                    <StatusBadge status={site.residents.length >= parseInt(site.capacity) ? 'full' : 'available'} />
                     {isAdmin && (
                       <button
                         onClick={(e) => { e.stopPropagation(); deleteSite(site.id); }}
@@ -447,14 +435,11 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                 {!id && (
                   <div className="mb-8">
                     <div className="flex justify-between items-center mb-4">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Occupation du centre</p>
-                      <p className="text-sm font-black text-primary">{site.residents.length} / {site.capacity} places</p>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Effectif actuel</p>
+                      <p className="text-sm font-black text-primary">{site.residents.length} {site.residents.length > 1 ? 'Résidents' : 'Résident'}</p>
                     </div>
-                    <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                      <div
-                        className={`h-full transition-all duration-1000 ${site.residents.length >= parseInt(site.capacity) ? 'bg-red-500' : 'bg-primary'}`}
-                        style={{ width: `${Math.min(100, (site.residents.length / (parseInt(site.capacity) || 1)) * 100)}%` }}
-                      ></div>
+                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                      <div className="h-full bg-primary/20 w-full"></div>
                     </div>
                     <button
                       onClick={() => navigate(`/sites/${site.id}`)}
@@ -507,7 +492,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                           <span className="material-symbols-outlined text-sm text-primary filled">groups</span>
                           Résidents affectés
                         </h4>
-                        <p className="text-[9px] text-slate-600 font-bold uppercase mt-1">{site.residents.length} / {site.capacity}</p>
+                        <p className="text-[9px] text-slate-600 font-bold uppercase mt-1">{site.residents.length} {site.residents.length > 1 ? 'Résidents' : 'Résident'}</p>
                       </div>
                       {isAdmin && (
                         <button
@@ -553,22 +538,12 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                   </div>
                 )}
 
-                {/* Footer Carte Site */}
-                <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mt-auto pt-6 border-t border-white/5 ${!id ? 'opacity-50' : ''}`}>
+                <div className={`flex items-center gap-6 mt-auto pt-6 border-t border-white/5 ${!id ? 'opacity-50' : ''}`}>
                   <div className="flex items-center gap-4">
                     <span className="material-symbols-outlined text-slate-500">groups</span>
                     <div>
-                      <p className="text-[8px] font-black text-slate-600 uppercase">Occupation Actuelle</p>
-                      <p className="text-sm font-black text-white">{site.residents.length} / {site.capacity} résidents</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="material-symbols-outlined text-slate-500">pie_chart</span>
-                    <div>
-                      <p className="text-[8px] font-black text-slate-600 uppercase">Taux d'occupation</p>
-                      <p className="text-sm font-black text-white">
-                        {Math.round((site.residents.length / parseInt(site.capacity || '1')) * 100)}%
-                      </p>
+                      <p className="text-[8px] font-black text-slate-600 uppercase">Nombre total d'étudiants</p>
+                      <p className="text-sm font-black text-white">{site.residents.length}</p>
                     </div>
                   </div>
                 </div>
@@ -578,19 +553,6 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
         </div>
       </div>
     </div>
-  );
-};
-
-const StatusBadge = ({ status }: { status: any }) => {
-  const configs = {
-    available: { label: 'En rotation', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-    full: { label: 'Effectif Complet', color: 'bg-red-500/10 text-red-500 border-red-500/20' }
-  };
-  const config = configs[status as keyof typeof configs] || configs.available;
-  return (
-    <span className={`text-[9px] font-black px-4 py-2 rounded-full uppercase tracking-[0.15em] border ${config.color} shadow-sm`}>
-      {config.label}
-    </span>
   );
 };
 
