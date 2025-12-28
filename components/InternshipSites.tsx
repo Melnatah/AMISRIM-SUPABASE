@@ -453,7 +453,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                     <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
                       <div
                         className={`h-full transition-all duration-1000 ${site.residents.length >= parseInt(site.capacity) ? 'bg-red-500' : 'bg-primary'}`}
-                        style={{ width: `${Math.min(100, (site.residents.length / parseInt(site.capacity)) * 100)}%` }}
+                        style={{ width: `${Math.min(100, (site.residents.length / (parseInt(site.capacity) || 1)) * 100)}%` }}
                       ></div>
                     </div>
                     <button

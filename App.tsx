@@ -25,7 +25,7 @@ interface User {
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
-  const [sites, setSites] = useState<Site[]>(MOCK_SITES);
+  const [sites, setSites] = useState<Site[]>([]);
 
   useEffect(() => {
     const handleUserSession = async (session: any) => {
@@ -66,13 +66,27 @@ const App: React.FC = () => {
     };
     checkSession();
 
+    // Fetch real sites for sidebar
+    const fetchSites = async () => {
+      const { data } = await supabase.from('sites').select('*');
+      if (data) setSites(data as Site[]);
+    };
+    fetchSites();
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       handleUserSession(session);
     });
 
+    // Listen for sites changes
+    const sitesChannel = supabase
+      .channel('sites-all')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sites' }, fetchSites)
+      .subscribe();
+
     return () => {
       subscription.unsubscribe();
+      supabase.removeChannel(sitesChannel);
     };
   }, []);
 
