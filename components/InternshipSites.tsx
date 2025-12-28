@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Site, Resident } from '../types';
 import { supabase } from '../services/supabase';
 
@@ -9,6 +9,7 @@ interface InternshipSitesProps {
 
 const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
   const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
   const isAdmin = user.role === 'admin';
 
   // États de données
@@ -339,41 +340,56 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-              <span>Cursus Clinique</span>
+              <Link to="/sites" className="hover:text-primary transition-colors">Cursus Clinique</Link>
               <span className="material-symbols-outlined text-[12px]">chevron_right</span>
               <span className="text-primary">{id ? 'Détails du centre' : 'Tous les sites de stage'}</span>
             </div>
-            <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-900 dark:text-white md:text-5xl uppercase">Gestion des Stages</h2>
-            <p className="text-slate-500 text-sm max-w-xl">Affectation des résidents et suivi des responsables par centre hospitalier.</p>
+            <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-900 dark:text-white md:text-5xl uppercase">
+              {id ? 'Détails du Site' : 'Gestion des Stages'}
+            </h2>
+            <p className="text-slate-500 text-sm max-w-xl">
+              {id ? 'Consultez les informations détaillées et la liste des résidents affectés à ce centre.' : 'Affectation des résidents et suivi des responsables par centre hospitalier.'}
+            </p>
           </div>
-          {!id && isAdmin && (
-            <button
-              onClick={() => setIsAddSiteModalOpen(true)}
-              className="flex items-center gap-3 rounded-[1.5rem] bg-primary px-10 py-5 text-xs font-black text-white shadow-2xl shadow-primary/30 hover:scale-105 transition-all active:scale-95"
-            >
-              <span className="material-symbols-outlined">add_business</span>
-              AJOUTER UN SITE
-            </button>
-          )}
+          <div className="flex gap-4">
+            {id && (
+              <button
+                onClick={() => navigate('/sites')}
+                className="flex items-center gap-3 rounded-[1.5rem] bg-white dark:bg-surface-dark border border-white/10 px-8 py-5 text-xs font-black text-slate-500 dark:text-white shadow-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+              >
+                <span className="material-symbols-outlined text-sm">arrow_back</span>
+                RETOUR
+              </button>
+            )}
+            {!id && isAdmin && (
+              <button
+                onClick={() => setIsAddSiteModalOpen(true)}
+                className="flex items-center gap-3 rounded-[1.5rem] bg-primary px-10 py-5 text-xs font-black text-white shadow-2xl shadow-primary/30 hover:scale-105 transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined">add_business</span>
+                AJOUTER UN SITE
+              </button>
+            )}
+          </div>
         </div>
 
         {/* GRILLE DES SITES */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
           {displayedSites.map((site) => (
-            <div key={site.id} className="group relative flex flex-col bg-white dark:bg-surface-dark rounded-[3.5rem] overflow-hidden shadow-2xl border border-gray-100 dark:border-white/5 transition-all hover:border-primary/20">
+            <div key={site.id} className={`group relative flex flex-col bg-white dark:bg-surface-dark rounded-[3.5rem] overflow-hidden shadow-2xl border border-gray-100 dark:border-white/5 transition-all hover:border-primary/20 ${id ? 'xl:col-span-2' : ''}`}>
               <div className="p-8 md:p-12 flex flex-col h-full">
 
                 {/* Header Carte Site */}
-                <div className="flex justify-between items-start mb-12">
+                <div className="flex justify-between items-start mb-8">
                   <div className="flex items-center gap-6">
-                    <div className="size-20 rounded-[2rem] bg-primary/10 text-primary flex items-center justify-center">
-                      <span className="material-symbols-outlined text-5xl">apartment</span>
+                    <div className="size-16 md:size-20 rounded-[1.5rem] md:rounded-[2rem] bg-primary/10 text-primary flex items-center justify-center">
+                      <span className="material-symbols-outlined text-3xl md:text-5xl">apartment</span>
                     </div>
                     <div>
-                      <h3 className="text-3xl font-black text-slate-900 dark:text-white group-hover:text-primary transition-colors leading-tight mb-2">{site.name}</h3>
-                      <div className="flex items-center gap-3">
+                      <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white group-hover:text-primary transition-colors leading-tight mb-2">{site.name}</h3>
+                      <div className="flex flex-wrap items-center gap-3">
                         <span className="bg-white/10 px-3 py-1 rounded-lg text-[9px] font-black text-slate-500 uppercase tracking-widest border border-white/5">{site.type}</span>
-                        <div className="size-1 rounded-full bg-slate-700"></div>
+                        <div className="size-1 rounded-full bg-slate-700 hidden md:block"></div>
                         <p className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
                           <span className="material-symbols-outlined text-sm">person</span>
                           Responsable : {site.supervisor}
@@ -385,7 +401,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                     <StatusBadge status={site.residents.length >= parseInt(site.capacity) ? 'full' : 'available'} />
                     {isAdmin && (
                       <button
-                        onClick={() => deleteSite(site.id)}
+                        onClick={(e) => { e.stopPropagation(); deleteSite(site.id); }}
                         className="size-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
                         title="Supprimer ce site"
                       >
@@ -395,61 +411,85 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                   </div>
                 </div>
 
-                {/* LISTE DES ETUDIANTS */}
-                <div className="bg-background-dark/40 rounded-[2.5rem] p-8 border border-white/5 mb-10 flex-1">
-                  <div className="flex justify-between items-center mb-8">
-                    <div className="flex flex-col">
-                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-3">
-                        <span className="material-symbols-outlined text-sm text-primary filled">groups</span>
-                        Résidents affectés
-                      </h4>
-                      <p className="text-[9px] text-slate-600 font-bold uppercase mt-1">{site.residents.length} / {site.capacity}</p>
+                {/* Info Overview (Shown only when not in detail view) */}
+                {!id && (
+                  <div className="mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Occupation du centre</p>
+                      <p className="text-sm font-black text-primary">{site.residents.length} / {site.capacity} places</p>
                     </div>
-                    {isAdmin && (
-                      <button
-                        onClick={() => { setActiveSiteId(site.id); setIsAddResidentModalOpen(true); }}
-                        className="text-[9px] font-black text-white bg-primary hover:bg-primary-dark px-5 py-2.5 rounded-xl uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-primary/20"
-                      >
-                        <span className="material-symbols-outlined text-sm">add</span>
-                        Affecter un Résident
-                      </button>
-                    )}
+                    <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                      <div
+                        className={`h-full transition-all duration-1000 ${site.residents.length >= parseInt(site.capacity) ? 'bg-red-500' : 'bg-primary'}`}
+                        style={{ width: `${Math.min(100, (site.residents.length / parseInt(site.capacity)) * 100)}%` }}
+                      ></div>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/sites/${site.id}`)}
+                      className="w-full mt-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-primary hover:border-primary transition-all text-[10px] font-black uppercase tracking-widest"
+                    >
+                      Consulter les Détails & Résidents
+                    </button>
                   </div>
+                )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {site.residents.length > 0 ? (
-                      site.residents.map(res => (
-                        <div key={res.id} className="flex items-center justify-between p-5 rounded-2xl bg-surface-dark border border-white/5 group/res hover:border-primary/40 transition-all shadow-sm">
-                          <div className="flex items-center gap-4">
-                            <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xs font-black">
-                              {res.lastName.charAt(0)}{res.firstName.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="text-sm font-black text-white leading-none mb-1">{res.lastName}</p>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{res.firstName}</p>
-                            </div>
-                          </div>
-                          {isAdmin && (
-                            <button
-                              onClick={() => removeResident(site.id, res.id)}
-                              className="size-8 rounded-lg text-slate-600 hover:text-red-500 hover:bg-red-500/10 transition-all flex items-center justify-center opacity-0 group-hover/res:opacity-100"
-                              title="Retirer le résident"
-                            >
-                              <span className="material-symbols-outlined text-sm">person_remove</span>
-                            </button>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="col-span-full py-12 text-center border-2 border-dashed border-dark-border rounded-[2rem] bg-black/10">
-                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Aucun résident posté dans ce centre</p>
+                {/* LISTE DES ETUDIANTS (Shown only in detail view OR if ID is null we hide it for brevity) */}
+                {id && (
+                  <div className="bg-background-dark/40 rounded-[2.5rem] p-8 border border-white/5 mb-10 flex-1">
+                    <div className="flex justify-between items-center mb-8">
+                      <div className="flex flex-col">
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-3">
+                          <span className="material-symbols-outlined text-sm text-primary filled">groups</span>
+                          Résidents affectés
+                        </h4>
+                        <p className="text-[9px] text-slate-600 font-bold uppercase mt-1">{site.residents.length} / {site.capacity}</p>
                       </div>
-                    )}
+                      {isAdmin && (
+                        <button
+                          onClick={() => { setActiveSiteId(site.id); setIsAddResidentModalOpen(true); }}
+                          className="text-[9px] font-black text-white bg-primary hover:bg-primary-dark px-5 py-2.5 rounded-xl uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-primary/20"
+                        >
+                          <span className="material-symbols-outlined text-sm">add</span>
+                          Affecter un Résident
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {site.residents.length > 0 ? (
+                        site.residents.map(res => (
+                          <div key={res.id} className="flex items-center justify-between p-5 rounded-2xl bg-surface-dark border border-white/5 group/res hover:border-primary/40 transition-all shadow-sm">
+                            <div className="flex items-center gap-4">
+                              <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xs font-black">
+                                {res.lastName.charAt(0)}{res.firstName.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="text-sm font-black text-white leading-none mb-1">{res.lastName}</p>
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{res.firstName}</p>
+                              </div>
+                            </div>
+                            {isAdmin && (
+                              <button
+                                onClick={() => removeResident(site.id, res.id)}
+                                className="size-8 rounded-lg text-slate-600 hover:text-red-500 hover:bg-red-500/10 transition-all flex items-center justify-center opacity-0 group-hover/res:opacity-100"
+                                title="Retirer le résident"
+                              >
+                                <span className="material-symbols-outlined text-sm">person_remove</span>
+                              </button>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="col-span-full py-12 text-center border-2 border-dashed border-dark-border rounded-[2rem] bg-black/10">
+                          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Aucun résident posté dans ce centre</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Footer Carte Site */}
-                <div className="grid grid-cols-2 gap-6 mt-auto pt-6 border-t border-white/5">
+                <div className={`grid grid-cols-2 gap-6 mt-auto pt-6 border-t border-white/5 ${!id ? 'opacity-50' : ''}`}>
                   <div className="flex items-center gap-4">
                     <span className="material-symbols-outlined text-slate-500">meeting_room</span>
                     <div>
