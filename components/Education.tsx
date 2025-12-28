@@ -36,6 +36,9 @@ const Education: React.FC<EducationProps> = ({ user }) => {
    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
    const [addType, setAddType] = useState<'subject' | 'module' | 'item' | 'file'>('subject');
    const [newName, setNewName] = useState('');
+   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+   const [isUploading, setIsUploading] = useState(false);
+   const [targetModuleId, setTargetModuleId] = useState<string | null>(null);
 
    useEffect(() => {
       setSelectedSubjectId(null);
@@ -126,26 +129,69 @@ const Education: React.FC<EducationProps> = ({ user }) => {
 
    const handleCategoryChange = (cat: Category) => navigate(`/education/${cat}`);
 
+   const handleFileUpload = async (file: File, moduleId: string) => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${moduleId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+         .from('education')
+         .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+         .from('education')
+         .getPublicUrl(filePath);
+
+      const { error: dbError } = await supabase.from('files').insert([{
+         name: file.name,
+         url: publicUrl,
+         module_id: moduleId,
+         type: file.type.includes('pdf') ? 'pdf' : file.type.includes('image') ? 'image' : 'video',
+         size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+         author: 'Admin'
+      }]);
+
+      if (dbError) throw dbError;
+   };
+
    const handleAdd = async () => {
-      if (!newName.trim()) return;
+      if (!newName.trim() && addType !== 'file') return;
+      if (addType === 'file' && !selectedFile) { alert("Sélectionnez un fichier."); return; }
+
       try {
+         setIsUploading(true);
+         let moduleId = targetModuleId;
+
          if (activeCategory === 'cours' && addType === 'subject') {
             await supabase.from('subjects').insert([{ name: newName, year: activeYear.toString(), category: 'cours' }]);
          } else if (activeCategory === 'staff' && addType === 'module') {
-            await supabase.from('modules').insert([{ name: newName, category: 'staff', description: 'Nouveau module de staff' }]);
+            const { data, error } = await supabase.from('modules').insert([{ name: newName, category: 'staff', description: 'Nouveau module de staff' }]).select();
+            if (error) throw error;
+            if (selectedFile && data && data[0]) await handleFileUpload(selectedFile, data[0].id);
          } else if ((activeCategory === 'epu' || activeCategory === 'diu') && addType === 'item') {
             await supabase.from('subjects').insert([{ name: newName, category: activeCategory, year: '0' }]);
          } else if (addType === 'module') {
             const parentId = activeCategory === 'cours' ? selectedSubjectId : selectedItemId;
             if (!parentId) { alert("Aucun parent sélectionné."); return; }
-            await supabase.from('modules').insert([{ name: newName, subject_id: parentId, description: 'Nouveau module' }]);
+            const { data, error } = await supabase.from('modules').insert([{ name: newName, subject_id: parentId, description: 'Nouveau module' }]).select();
+            if (error) throw error;
+            if (selectedFile && data && data[0]) await handleFileUpload(selectedFile, data[0].id);
+         } else if (addType === 'file' && moduleId) {
+            await handleFileUpload(selectedFile!, moduleId);
          }
+
          setIsAddModalOpen(false);
          setNewName('');
+         setSelectedFile(null);
+         setTargetModuleId(null);
          fetchData();
       } catch (e) {
          console.error(e);
-         alert("Erreur lors de l'ajout.");
+         alert("Erreur lors de l'opération.");
+      } finally {
+         setIsUploading(false);
       }
    };
 
@@ -167,7 +213,10 @@ const Education: React.FC<EducationProps> = ({ user }) => {
       fetchData();
    };
 
-   const simulateDownload = (name: string) => alert(`Téléchargement de : ${name}`);
+   const handleDownload = (url: string, name: string) => {
+      if (!url) return;
+      window.open(url, '_blank');
+   };
 
    if (loading) {
       return (
@@ -189,12 +238,31 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                <div className="bg-surface-dark border border-surface-highlight rounded-[2rem] p-8 w-full max-w-sm shadow-2xl">
                   <h3 className="text-sm font-black text-white uppercase mb-6 flex items-center gap-2">
                      <span className="material-symbols-outlined text-primary">add_circle</span>
-                     Ajouter {addType === 'subject' ? 'Matière' : addType === 'module' ? 'Module' : 'Item'}
+                     Ajouter {addType === 'subject' ? 'Matière' : addType === 'module' ? 'Module' : addType === 'file' ? 'Fichier' : 'Item'}
                   </h3>
-                  <input type="text" className="w-full bg-background-dark/50 border border-white/5 rounded-xl py-4 px-4 text-white text-sm mb-6 outline-none" placeholder="Titre..." value={newName} onChange={e => setNewName(e.target.value)} autoFocus />
+
+                  {addType !== 'file' && (
+                     <input type="text" className="w-full bg-background-dark/50 border border-white/5 rounded-xl py-4 px-4 text-white text-sm mb-4 outline-none" placeholder="Titre..." value={newName} onChange={e => setNewName(e.target.value)} autoFocus />
+                  )}
+
+                  {(addType === 'module' || addType === 'file') && (
+                     <div className="mb-6">
+                        <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block">
+                           {addType === 'module' ? 'Fichier (Optionnel)' : 'Sélectionner le fichier'}
+                        </label>
+                        <input
+                           type="file"
+                           className="text-[10px] text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:bg-primary/20 file:text-primary hover:file:bg-primary/30"
+                           onChange={e => setSelectedFile(e.target.files ? e.target.files[0] : null)}
+                        />
+                     </div>
+                  )}
+
                   <div className="flex gap-3">
-                     <button onClick={() => setIsAddModalOpen(false)} className="flex-1 py-3 text-[10px] font-black text-slate-500 uppercase">Annuler</button>
-                     <button onClick={handleAdd} className="flex-1 py-3 bg-primary text-white text-[10px] font-black rounded-xl uppercase">Confirmer</button>
+                     <button onClick={() => { setIsAddModalOpen(false); setSelectedFile(null); }} className="flex-1 py-3 text-[10px] font-black text-slate-500 uppercase" disabled={isUploading}>Annuler</button>
+                     <button onClick={handleAdd} className="flex-1 py-3 bg-primary text-white text-[10px] font-black rounded-xl uppercase flex items-center justify-center gap-2" disabled={isUploading}>
+                        {isUploading ? <div className="size-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : 'Confirmer'}
+                     </button>
                   </div>
                </div>
             </div>
@@ -245,7 +313,12 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                           <p className="text-xs font-black text-primary uppercase">{mod.name}</p>
                                           <div className="flex items-center gap-2">
                                              <span className="text-[8px] font-bold text-slate-500">{mod.files.length} fichiers</span>
-                                             {isAdmin && <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="text-red-500 transition-colors"><span className="material-symbols-outlined text-xs">delete</span></button>}
+                                             {isAdmin && (
+                                                <div className="flex gap-1">
+                                                   <button onClick={() => { setTargetModuleId(mod.id); setAddType('file'); setIsAddModalOpen(true); }} className="text-primary hover:text-white transition-colors" title="Ajouter un fichier"><span className="material-symbols-outlined text-xs">add_circle</span></button>
+                                                   <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="text-red-500 transition-colors"><span className="material-symbols-outlined text-xs">delete</span></button>
+                                                </div>
+                                             )}
                                           </div>
                                        </div>
                                        <div className="space-y-1">
@@ -253,7 +326,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                              <div key={f.id} className="flex items-center justify-between py-2 text-[10px] text-slate-400 border-t border-white/5">
                                                 <span className="truncate">{f.name}</span>
                                                 <div className="flex items-center gap-2">
-                                                   <button onClick={() => simulateDownload(f.name)} className="material-symbols-outlined text-sm hover:text-white">download</button>
+                                                   <button onClick={() => handleDownload(f.url || '', f.name)} className="material-symbols-outlined text-sm hover:text-white">download</button>
                                                    {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-sm text-red-500">delete</button>}
                                                 </div>
                                              </div>
@@ -290,11 +363,14 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                  <div key={f.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 group hover:border-primary/50 transition-all">
                                     <span className="text-[10px] font-bold text-slate-300 truncate">{f.name}</span>
                                     <div className="flex items-center gap-2">
-                                       <button onClick={() => simulateDownload(f.name)} className="material-symbols-outlined text-slate-500 hover:text-white text-base">download</button>
+                                       <button onClick={() => handleDownload(f.url || '', f.name)} className="material-symbols-outlined text-slate-500 hover:text-white text-base">download</button>
                                        {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-red-500 text-base">delete</button>}
                                     </div>
                                  </div>
                               ))}
+                              {isAdmin && (
+                                 <button onClick={() => { setTargetModuleId(mod.id); setAddType('file'); setIsAddModalOpen(true); }} className="w-full py-3 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-500 uppercase hover:text-primary transition-all">+ Ajouter Fichier</button>
+                              )}
                            </div>
                         </div>
                      ))}
@@ -334,11 +410,14 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                              <div key={f.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5">
                                                 <span className="text-[10px] font-bold text-slate-400 truncate">{f.name}</span>
                                                 <div className="flex items-center gap-2">
-                                                   <button onClick={() => simulateDownload(f.name)} className="material-symbols-outlined text-sm text-slate-500 hover:text-white">download</button>
+                                                   <button onClick={() => handleDownload(f.url || '', f.name)} className="material-symbols-outlined text-sm text-slate-500 hover:text-white">download</button>
                                                    {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-sm text-red-500">delete</button>}
                                                 </div>
                                              </div>
                                           ))}
+                                          {isAdmin && (
+                                             <button onClick={() => { setTargetModuleId(mod.id); setAddType('file'); setIsAddModalOpen(true); }} className="w-full py-2 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-500 uppercase hover:text-primary transition-all">+ Fichier</button>
+                                          )}
                                        </div>
                                     </div>
                                  ))}
