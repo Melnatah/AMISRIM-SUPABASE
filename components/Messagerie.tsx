@@ -127,9 +127,9 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
         setSelectedMessage(null);
       }
       alert("Message supprimé avec succès.");
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting message:', error);
-      alert("Erreur lors de la suppression du message.");
+      alert("Erreur lors de la suppression du message : " + (error.message || "Erreur inconnue"));
     }
   };
 
