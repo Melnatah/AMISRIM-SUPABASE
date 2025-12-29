@@ -154,22 +154,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <p className="text-slate-500 text-xs md:text-sm font-medium">Portail National des Résidents en Radiologie</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 md:flex gap-2">
-              <div className="bg-white/5 border border-white/10 px-3 md:px-4 py-2 rounded-xl text-center min-w-[70px] md:min-w-[80px]">
-                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Résidents</p>
-                <p className="text-sm md:text-base font-black text-white">{userCount}</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 px-3 md:px-4 py-2 rounded-xl text-center min-w-[70px] md:min-w-[80px]">
-                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Modules</p>
-                <p className="text-sm md:text-base font-black text-blue-400">{moduleCount}</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 px-3 md:px-4 py-2 rounded-xl text-center min-w-[70px] md:min-w-[80px]">
-                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Documents</p>
-                <p className="text-sm md:text-base font-black text-emerald-400">{fileCount}</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 px-3 md:px-4 py-2 rounded-xl text-center min-w-[70px] md:min-w-[80px]">
-                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Sites</p>
-                <p className="text-sm md:text-base font-black text-amber-400">{siteCount}</p>
+            <div className="flex gap-2">
+              <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center min-w-[100px]">
+                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Connectés</p>
+                <p className="text-sm md:text-base font-black text-green-400">{userCount}</p>
               </div>
             </div>
           </div>
