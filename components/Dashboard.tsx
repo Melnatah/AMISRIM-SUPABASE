@@ -20,6 +20,9 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [userCount, setUserCount] = useState<number>(0);
+  const [moduleCount, setModuleCount] = useState<number>(0);
+  const [fileCount, setFileCount] = useState<number>(0);
+  const [siteCount, setSiteCount] = useState<number>(0);
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingAttendance, setPendingAttendance] = useState<any[]>([]);
   const [myAttendance, setMyAttendance] = useState<any[]>([]);
@@ -38,11 +41,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const fetchData = async () => {
     try {
       // Fetch User Count
-      const { count, error: countError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const { count: uCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+      setUserCount(uCount || 0);
 
-      if (!countError) setUserCount(count || 0);
+      // Fetch Module Count
+      const { count: mCount } = await supabase.from('modules').select('*', { count: 'exact', head: true });
+      setModuleCount(mCount || 0);
+
+      // Fetch File Count
+      const { count: fCount } = await supabase.from('files').select('*', { count: 'exact', head: true });
+      setFileCount(fCount || 0);
+
+      // Fetch Site Count
+      const { count: sCount } = await supabase.from('sites').select('*', { count: 'exact', head: true });
+      setSiteCount(sCount || 0);
 
       // Fetch Messages
       const { data: msgs, error: msgError } = await supabase
@@ -142,14 +154,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <p className="text-slate-500 text-xs md:text-sm font-medium">Portail National des Résidents en Radiologie</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center min-w-[80px]">
-                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Inscrits</p>
-                <p className="text-sm font-black text-white">{userCount}</p>
+            <div className="grid grid-cols-2 md:flex gap-2">
+              <div className="bg-white/5 border border-white/10 px-3 md:px-4 py-2 rounded-xl text-center min-w-[70px] md:min-w-[80px]">
+                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Résidents</p>
+                <p className="text-sm md:text-base font-black text-white">{userCount}</p>
               </div>
-              <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center min-w-[80px]">
-                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Sessions</p>
-                <p className="text-sm font-black text-green-500">Live</p>
+              <div className="bg-white/5 border border-white/10 px-3 md:px-4 py-2 rounded-xl text-center min-w-[70px] md:min-w-[80px]">
+                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Modules</p>
+                <p className="text-sm md:text-base font-black text-blue-400">{moduleCount}</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 px-3 md:px-4 py-2 rounded-xl text-center min-w-[70px] md:min-w-[80px]">
+                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Documents</p>
+                <p className="text-sm md:text-base font-black text-emerald-400">{fileCount}</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 px-3 md:px-4 py-2 rounded-xl text-center min-w-[70px] md:min-w-[80px]">
+                <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Sites</p>
+                <p className="text-sm md:text-base font-black text-amber-400">{siteCount}</p>
               </div>
             </div>
           </div>
