@@ -21,7 +21,10 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [userCount, setUserCount] = useState<number>(0);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [pendingAttendance, setPendingAttendance] = useState<any[]>([]);
+  const [myAttendance, setMyAttendance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const isAdmin = user.role === 'admin';
 
   const modules = [
     { title: 'Education', icon: 'school', path: '/education', color: 'text-blue-500', bg: 'bg-blue-500/10' },
@@ -32,40 +35,95 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     { title: 'Stats', icon: 'bar_chart', path: '/statistics', color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
   ];
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch User Count
-        const { count, error: countError } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
+  const fetchData = async () => {
+    try {
+      // Fetch User Count
+      const { count, error: countError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
 
-        if (!countError) setUserCount(count || 0);
+      if (!countError) setUserCount(count || 0);
 
-        // Fetch Messages
-        const { data: msgs, error: msgError } = await supabase
-          .from('messages')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5);
+      // Fetch Messages
+      const { data: msgs, error: msgError } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-        if (!msgError && msgs) {
-          setMessages(msgs.map(m => ({
-            id: m.id,
-            content: m.content,
-            author: m.author,
-            createdAt: m.created_at,
-            type: m.type
-          })));
-        }
-      } catch (e) {
-        console.error("Dashboard fetch error", e);
-      } finally {
-        setLoading(false);
+      if (!msgError && msgs) {
+        setMessages(msgs.map(m => ({
+          id: m.id,
+          content: m.content,
+          author: m.author,
+          createdAt: m.created_at,
+          type: m.type
+        })));
       }
-    };
+
+      // Fetch Attendance
+      if (isAdmin) {
+        const { data: att } = await supabase.from('attendance').select('*, profiles(first_name, last_name)').eq('status', 'pending');
+        setPendingAttendance(att || []);
+      } else {
+        const { data: myAtt } = await supabase.from('attendance').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(10);
+        setMyAttendance(myAtt || []);
+      }
+
+    } catch (e) {
+      console.error("Dashboard fetch error", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
-  }, []);
+
+    const channel = supabase.channel('dashboard-attendance')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, (payload) => {
+        console.log("Realtime update received:", payload);
+        fetchData();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user.id, isAdmin]);
+
+  const handleDeclarePresence = async (type: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    const alreadyDeclared = myAttendance.some(a => a.item_type === type && a.created_at.startsWith(today));
+
+    if (alreadyDeclared) {
+      alert("Vous avez déjà émargé pour cette catégorie aujourd'hui.");
+      return;
+    }
+
+    const { error } = await supabase.from('attendance').insert([{
+      profile_id: user.id,
+      item_type: type,
+      status: 'pending'
+    }]);
+
+    if (error) alert(error.message);
+    else alert("Émargement envoyé pour confirmation !");
+  };
+
+  const updateAttendanceStatus = async (id: string, status: 'confirmed' | 'rejected') => {
+    if (status === 'confirmed') {
+      const { error } = await supabase.from('attendance').update({ status: 'confirmed' }).eq('id', id);
+      if (error) {
+        alert("Erreur lors de la validation: " + error.message);
+      }
+    } else {
+      const { error } = await supabase.from('attendance').delete().eq('id', id);
+      if (error) {
+        alert("Erreur lors du rejet: " + error.message);
+      }
+    }
+    // Refresh immediately for the current admin
+    fetchData();
+  };
 
   return (
     <div className="flex-1 overflow-y-auto px-4 pb-10 md:px-10 md:pb-10 pt-6 bg-background-light dark:bg-background-dark font-jakarta">
@@ -95,6 +153,73 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Attendance System (Émargement) */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Resident Interaction */}
+          <div className={`xl:col-span-2 bg-surface-dark rounded-[2.5rem] border border-surface-highlight p-8 shadow-xl relative overflow-hidden`}>
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h3 className="text-white text-sm font-black uppercase tracking-widest">Émargement Quotidien</h3>
+                <p className="text-slate-500 text-[10px] font-bold uppercase mt-1">Déclarez votre présence aux sessions d'aujourd'hui</p>
+              </div>
+              <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <span className="material-symbols-outlined text-xl">how_to_reg</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {['staff', 'epu', 'diu', 'stage'].map(type => {
+                const status = myAttendance.find(a => a.item_type === type && a.created_at.startsWith(new Date().toISOString().split('T')[0]))?.status;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => !status && handleDeclarePresence(type)}
+                    disabled={!!status}
+                    className={`flex flex-col items-center p-6 rounded-3xl border transition-all ${status === 'confirmed' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' :
+                      status === 'pending' ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' :
+                        'bg-background-dark/40 border-white/5 text-slate-400 hover:border-primary/50'
+                      }`}
+                  >
+                    <span className="material-symbols-outlined text-2xl mb-3">
+                      {type === 'staff' ? 'groups' : type === 'epu' ? 'school' : type === 'diu' ? 'workspace_premium' : 'location_on'}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{type}</span>
+                    {status && <span className="text-[8px] font-bold mt-2 uppercase">{status === 'confirmed' ? 'Validé' : 'En attente'}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Admin Panel for Attendance */}
+          {isAdmin && (
+            <div className="bg-surface-dark rounded-[2.5rem] border border-emerald-500/30 p-8 shadow-xl animate-in fade-in slide-in-from-right-4">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-white text-sm font-black uppercase tracking-widest">Validations ({pendingAttendance.length})</h3>
+                <span className="size-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center material-symbols-outlined text-sm">verified_user</span>
+              </div>
+              <div className="space-y-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                {pendingAttendance.length > 0 ? pendingAttendance.map(att => (
+                  <div key={att.id} className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between group">
+                    <div>
+                      <p className="text-white text-[10px] font-black uppercase">{att.profiles.first_name} {att.profiles.last_name}</p>
+                      <p className="text-primary text-[8px] font-black uppercase">{att.item_type}</p>
+                    </div>
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => updateAttendanceStatus(att.id, 'confirmed')} className="size-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">done</span></button>
+                      <button onClick={() => updateAttendanceStatus(att.id, 'rejected')} className="size-7 rounded-lg bg-red-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">close</span></button>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center py-10">
+                    <p className="text-slate-600 text-[10px] font-black uppercase italic">Aucune attente</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Modules Grid - 2 cols on mobile, 6 on desktop */}

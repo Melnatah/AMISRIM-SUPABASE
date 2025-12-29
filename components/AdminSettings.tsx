@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 
-type AdminTab = 'users' | 'finance' | 'system' | 'broadcast';
+type AdminTab = 'users' | 'finance' | 'attendance' | 'broadcast' | 'system';
 
 interface PendingUser {
   id: string;
@@ -28,6 +27,7 @@ const AdminSettings: React.FC = () => {
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [allContributions, setAllContributions] = useState<any[]>([]);
+  const [pendingAttendance, setPendingAttendance] = useState<any[]>([]);
 
   const fetchSettings = async () => {
     const { data } = await supabase.from('settings').select('*');
@@ -84,16 +84,27 @@ const AdminSettings: React.FC = () => {
     if (data) setAllContributions(data);
   };
 
+  const fetchPendingAttendance = async () => {
+    const { data } = await supabase
+      .from('attendance')
+      .select('*, profiles(first_name, last_name, hospital)')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    if (data) setPendingAttendance(data);
+  };
+
   useEffect(() => {
     fetchSettings();
     fetchPendingUsers();
     fetchApprovedUsers();
     fetchAllContributions();
+    fetchPendingAttendance();
 
     const channel = supabase
       .channel('admin-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, fetchSettings)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'contributions' }, fetchAllContributions)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, fetchPendingAttendance)
       .subscribe();
 
     return () => {
@@ -172,6 +183,17 @@ const AdminSettings: React.FC = () => {
     }
   };
 
+  const handleAttendanceAction = async (id: string, status: 'confirmed' | 'rejected') => {
+    if (status === 'confirmed') {
+      const { error } = await supabase.from('attendance').update({ status: 'confirmed' }).eq('id', id);
+      if (error) alert(error.message);
+    } else {
+      const { error } = await supabase.from('attendance').delete().eq('id', id);
+      if (error) alert(error.message);
+    }
+    fetchPendingAttendance();
+  };
+
   const handleSendBroadcast = async () => {
     if (!broadcastMsg.trim()) return;
 
@@ -211,6 +233,7 @@ const AdminSettings: React.FC = () => {
         <div className="flex gap-1 bg-surface-dark p-1 rounded-2xl border border-surface-highlight overflow-x-auto hide-scrollbar shadow-2xl">
           <TabBtn label="Utilisateurs" icon="group" active={activeTab === 'users'} onClick={() => setActiveTab('users')} />
           <TabBtn label="Finances" icon="account_balance" active={activeTab === 'finance'} onClick={() => setActiveTab('finance')} />
+          <TabBtn label="Émargements" icon="how_to_reg" active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')} />
           <TabBtn label="Diffusion" icon="campaign" active={activeTab === 'broadcast'} onClick={() => setActiveTab('broadcast')} />
           <TabBtn label="Système" icon="settings_suggest" active={activeTab === 'system'} onClick={() => setActiveTab('system')} />
         </div>
@@ -348,6 +371,57 @@ const AdminSettings: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'attendance' && (
+            <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8 md:p-12 shadow-2xl">
+              <div className="flex justify-between items-center mb-10">
+                <h3 className="text-white font-black text-xl uppercase tracking-tight flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary">how_to_reg</span>
+                  Émargements à Valider
+                </h3>
+                <span className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">
+                  {pendingAttendance.length} En attente
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                {pendingAttendance.length > 0 ? pendingAttendance.map(att => (
+                  <div key={att.id} className="flex flex-col md:flex-row md:items-center justify-between p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all gap-6">
+                    <div className="flex items-center gap-5">
+                      <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                        <span className="material-symbols-outlined text-2xl">
+                          {att.item_type === 'staff' ? 'groups' : att.item_type === 'epu' ? 'school' : att.item_type === 'diu' ? 'workspace_premium' : 'location_on'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-lg font-black text-white">{att.profiles.first_name} {att.profiles.last_name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-primary text-[10px] font-black uppercase tracking-widest">{att.item_type}</span>
+                          <span className="text-slate-500 text-[10px] font-bold uppercase">•</span>
+                          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                            {new Date(att.created_at).toLocaleDateString()} {new Date(att.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={() => handleAttendanceAction(att.id, 'confirmed')} className="flex-1 md:flex-none px-6 py-3 bg-emerald-500 text-white text-[10px] font-black rounded-xl uppercase shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all flex items-center gap-2 justify-center">
+                        <span className="material-symbols-outlined text-sm">done</span> Valider
+                      </button>
+                      <button onClick={() => handleAttendanceAction(att.id, 'rejected')} className="flex-1 md:flex-none px-6 py-3 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-white transition-all flex items-center gap-2 justify-center">
+                        <span className="material-symbols-outlined text-sm">close</span> Rejeter
+                      </button>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="py-16 text-center bg-black/20 rounded-[2rem] border border-dashed border-white/5">
+                    <span className="material-symbols-outlined text-4xl text-slate-700 mb-4">checklist</span>
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Aucun émargement en attente de validation.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

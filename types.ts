@@ -159,3 +159,12 @@ export interface Message {
   createdAt?: string; // for sorting
   author?: string;
 }
+
+export interface Attendance {
+  id: string;
+  profileId: string;
+  itemType: 'staff' | 'epu' | 'diu' | 'stage';
+  itemId?: string;
+  status: 'pending' | 'confirmed';
+  createdAt: string;
+}
