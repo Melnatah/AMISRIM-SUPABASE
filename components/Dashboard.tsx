@@ -55,7 +55,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         setMessages(msgs.map(m => ({
           id: m.id,
           content: m.content,
-          author: m.author,
+          author: m.sender || m.author || 'Conseil National',
           createdAt: m.created_at,
           type: m.type
         })));

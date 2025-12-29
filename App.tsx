@@ -13,6 +13,7 @@ import DicomViewer from './components/DicomViewer';
 import AdminSettings from './components/AdminSettings';
 import Login from './components/Login';
 import Signup from './components/Signup';
+import SplashScreen from './components/SplashScreen';
 import { MOCK_SITES } from './constants';
 import { Site } from './types';
 import { supabase } from './services/supabase';
@@ -27,6 +28,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
   const [sites, setSites] = useState<Site[]>([]);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     const handleUserSession = async (session: any) => {
@@ -102,6 +104,10 @@ const App: React.FC = () => {
     setUser(null);
   };
 
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
   if (!user) {
     return authView === 'login' ? (
       <Login onLogin={handleLogin} onNavigateToSignup={() => setAuthView('signup')} />
@@ -123,7 +129,7 @@ const App: React.FC = () => {
         <Route path="/loisir/*" element={<Loisir user={user} />} />
         <Route path="/loisir" element={<Loisir user={user} />} />
         <Route path="/statistics" element={<Statistics />} />
-        <Route path="/messagerie" element={<Messagerie />} />
+        <Route path="/messagerie" element={<Messagerie user={user} />} />
         <Route path="/admin" element={user.role === 'admin' ? <AdminSettings /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
