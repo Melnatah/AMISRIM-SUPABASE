@@ -276,10 +276,6 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
               </div>
 
               <div className="flex gap-2">
-                <button disabled className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-white text-[9px] font-black uppercase tracking-widest transition-all shadow-lg shadow-primary/20 hover:scale-[1.02]">
-                  <span className="material-symbols-outlined text-sm">reply</span>
-                  Répondre
-                </button>
                 <button className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-[9px] font-black uppercase tracking-widest transition-all hover:bg-white/10">
                   <span className="material-symbols-outlined text-sm">print</span>
                 </button>
