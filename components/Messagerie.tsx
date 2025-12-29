@@ -111,6 +111,28 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
     }
   };
 
+  const handleDeleteMessage = async (id: string) => {
+    if (!window.confirm("Voulez-vous vraiment supprimer ce message ? Cette action sera appliquée pour tous les utilisateurs.")) return;
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setMessages(prev => prev.filter(m => m.id !== id));
+      if (selectedMessage?.id === id) {
+        setSelectedMessage(null);
+      }
+      alert("Message supprimé avec succès.");
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      alert("Erreur lors de la suppression du message.");
+    }
+  };
+
   const getPriorityConfig = (priority: string) => {
     switch (priority) {
       case 'urgent': return { color: 'text-red-500', bg: 'bg-red-500/10', border: 'border-red-500/20', label: 'CRITIQUE' };
@@ -261,6 +283,15 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
                 <button className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-[9px] font-black uppercase tracking-widest transition-all hover:bg-white/10">
                   <span className="material-symbols-outlined text-sm">print</span>
                 </button>
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={() => handleDeleteMessage(selectedMessage.id)}
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-black uppercase tracking-widest transition-all hover:bg-red-500 hover:text-white"
+                  >
+                    <span className="material-symbols-outlined text-sm">delete</span>
+                    Supprimer
+                  </button>
+                )}
               </div>
             </div>
 
