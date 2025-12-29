@@ -29,6 +29,18 @@ export interface Resident {
   lastName: string;
 }
 
+export interface Profile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  year: string | null;
+  hospital: string | null;
+  role: 'admin' | 'resident';
+  status: string;
+}
+
 export interface Site {
   id: string;
   name: string;

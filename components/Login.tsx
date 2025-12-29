@@ -25,7 +25,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignup }) => {
       forgotPass: "Mot de passe oublié ?",
       remember: "Se souvenir de moi",
       loginBtn: "SE CONNECTER",
-      or: "OU CONTINUER AVEC",
       noAccount: "Pas encore membre ?",
       request: "Demander l'accès",
       error: "Veuillez remplir tous les champs.",
@@ -39,7 +38,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignup }) => {
       forgotPass: "Forgot password?",
       remember: "Remember me",
       loginBtn: "SIGN IN",
-      or: "OR CONTINUE WITH",
       noAccount: "Not a member yet?",
       request: "Request access",
       error: "Please fill in all fields.",
@@ -174,17 +172,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignup }) => {
             </button>
           </form>
 
-          <div className="my-8 flex items-center gap-4">
-            <div className="h-px flex-1 bg-white/5"></div>
-            <span className="text-[9px] font-black text-slate-600 tracking-widest uppercase">{t.or}</span>
-            <div className="h-px flex-1 bg-white/5"></div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <SocialBtn icon="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" />
-            <SocialBtn icon="https://cdn-icons-png.flaticon.com/512/732/732221.png" />
-            <SocialBtn icon="https://cdn-icons-png.flaticon.com/512/0/747.png" />
-          </div>
 
           <div className="mt-10 flex flex-col items-center gap-4">
             <p className="text-slate-400 text-xs font-medium">
@@ -197,11 +184,5 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignup }) => {
     </div>
   );
 };
-
-const SocialBtn = ({ icon }: { icon: string }) => (
-  <button className="flex items-center justify-center py-3 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-white/10 transition-all">
-    <img src={icon} className="size-5 object-contain opacity-70" alt="social" />
-  </button>
-);
 
 export default Login;

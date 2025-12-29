@@ -14,6 +14,7 @@ const Signup: React.FC<SignupProps> = ({ onBackToLogin }) => {
     password: '',
     year: '1',
     hospital: '',
+    phone: '',
   });
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -33,6 +34,7 @@ const Signup: React.FC<SignupProps> = ({ onBackToLogin }) => {
           lastName: formData.lastName,
           year: formData.year,
           hospital: formData.hospital,
+          phone: formData.phone,
           role: 'resident', // Default role
         },
       },
@@ -149,6 +151,17 @@ const Signup: React.FC<SignupProps> = ({ onBackToLogin }) => {
                 className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white focus:ring-2 focus:ring-primary/50 outline-none text-sm font-medium"
                 value={formData.hospital}
                 onChange={e => setFormData({ ...formData, hospital: e.target.value })}
+              />
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Numéro de téléphone</label>
+              <input
+                required
+                type="tel"
+                placeholder="+228 00 00 00 00"
+                className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white focus:ring-2 focus:ring-primary/50 outline-none text-sm font-medium"
+                value={formData.phone}
+                onChange={e => setFormData({ ...formData, phone: e.target.value })}
               />
             </div>
 

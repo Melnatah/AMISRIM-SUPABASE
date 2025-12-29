@@ -14,6 +14,7 @@ import AdminSettings from './components/AdminSettings';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import SplashScreen from './components/SplashScreen';
+import Profile from './components/Profile';
 import { MOCK_SITES } from './constants';
 import { Site } from './types';
 import { supabase } from './services/supabase';
@@ -130,6 +131,7 @@ const App: React.FC = () => {
         <Route path="/loisir" element={<Loisir user={user} />} />
         <Route path="/statistics" element={<Statistics />} />
         <Route path="/messagerie" element={<Messagerie user={user} />} />
+        <Route path="/profile" element={<Profile user={user} />} />
         <Route path="/admin" element={user.role === 'admin' ? <AdminSettings /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
