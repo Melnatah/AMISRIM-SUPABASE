@@ -276,9 +276,6 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
               </div>
 
               <div className="flex gap-2">
-                <button className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 text-[9px] font-black uppercase tracking-widest transition-all hover:bg-white/10">
-                  <span className="material-symbols-outlined text-sm">print</span>
-                </button>
                 {user?.role === 'admin' && (
                   <button
                     onClick={() => handleDeleteMessage(selectedMessage.id)}
