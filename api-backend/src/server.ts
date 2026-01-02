@@ -1,0 +1,113 @@
+import express, { Express, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import dotenv from 'dotenv';
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Import routes
+import authRoutes from './routes/auth.routes.js';
+import profileRoutes from './routes/profile.routes.js';
+import siteRoutes from './routes/site.routes.js';
+import moduleRoutes from './routes/module.routes.js';
+import subjectRoutes from './routes/subject.routes.js';
+import fileRoutes from './routes/file.routes.js';
+import contributionRoutes from './routes/contribution.routes.js';
+import messageRoutes from './routes/message.routes.js';
+import settingRoutes from './routes/setting.routes.js';
+import leisureRoutes from './routes/leisure.routes.js';
+import attendanceRoutes from './routes/attendance.routes.js';
+import storageRoutes from './routes/storage.routes.js';
+
+// Import middleware
+import { errorHandler } from './middleware/errorHandler.js';
+import { rateLimiter } from './middleware/rateLimiter.js';
+
+// Import WebSocket handler
+import { initializeWebSocket } from './websocket/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables
+dotenv.config();
+
+const app: Express = express();
+const httpServer = createServer(app);
+const io = new SocketIOServer(httpServer, {
+    cors: {
+        origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+        methods: ['GET', 'POST'],
+        credentials: true,
+    },
+});
+
+const PORT = process.env.PORT || 3001;
+
+// Middleware
+app.use(helmet());
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    credentials: true,
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(rateLimiter);
+
+// Static files for uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Health check
+app.get('/health', (req: Request, res: Response) => {
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+    });
+});
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/profiles', profileRoutes);
+app.use('/api/sites', siteRoutes);
+app.use('/api/modules', moduleRoutes);
+app.use('/api/subjects', subjectRoutes);
+app.use('/api/files', fileRoutes);
+app.use('/api/contributions', contributionRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/settings', settingRoutes);
+app.use('/api/leisure', leisureRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/storage', storageRoutes);
+
+// 404 handler
+app.use((req: Request, res: Response) => {
+    res.status(404).json({ error: 'Route not found' });
+});
+
+// Error handler (must be last)
+app.use(errorHandler);
+
+// Initialize WebSocket
+initializeWebSocket(io);
+
+// Start server
+httpServer.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 WebSocket server ready`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 CORS enabled for: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    httpServer.close(() => {
+        console.log('HTTP server closed');
+        process.exit(0);
+    });
+});
+
+export { io };

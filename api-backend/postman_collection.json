@@ -1,0 +1,349 @@
+{
+    "info": {
+        "name": "AMIS RIM TOGO API",
+        "description": "Collection complète pour tester l'API Node.js",
+        "version": "1.0.0"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{auth_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:3001/api",
+            "type": "string"
+        },
+        {
+            "key": "auth_token",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Health Check",
+            "request": {
+                "method": "GET",
+                "url": "http://localhost:3001/health"
+            }
+        },
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Signup",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/auth/signup",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"resident@amisrim.tg\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+228 90 00 00 00\",\n  \"year\": \"R1\",\n  \"hospital\": \"CHU Sylvanus Olympio\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/auth/login",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@amisrim.tg\",\n  \"password\": \"ChangeThisPassword123!\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Refresh Token",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/auth/refresh",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"{{auth_token}}\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Profiles",
+            "item": [
+                {
+                    "name": "Get All Profiles",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/profiles"
+                    }
+                },
+                {
+                    "name": "Get My Profile",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/profiles/me"
+                    }
+                },
+                {
+                    "name": "Update My Profile",
+                    "request": {
+                        "method": "PUT",
+                        "url": "{{base_url}}/profiles/me",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"firstName\": \"Jane\",\n  \"phone\": \"+228 90 11 22 33\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Sites",
+            "item": [
+                {
+                    "name": "Get All Sites",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/sites"
+                    }
+                },
+                {
+                    "name": "Create Site",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/sites",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"name\": \"CHU Sylvanus Olympio\",\n  \"type\": \"Hôpital Universitaire\",\n  \"supervisor\": \"Dr. Kouame\",\n  \"duration\": \"6 mois\",\n  \"city\": \"Lomé\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Modules",
+            "item": [
+                {
+                    "name": "Get All Modules",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/modules"
+                    }
+                },
+                {
+                    "name": "Create Module",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/modules",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Radiologie Thoracique\",\n  \"year\": \"R2\",\n  \"description\": \"Module complet sur l'imagerie thoracique\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Messages",
+            "item": [
+                {
+                    "name": "Get All Messages",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/messages"
+                    }
+                },
+                {
+                    "name": "Create Message",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/messages",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"subject\": \"Réunion importante\",\n  \"content\": \"Réunion demain à 14h dans la salle de conférence\",\n  \"priority\": \"important\",\n  \"type\": \"broadcast\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Contributions",
+            "item": [
+                {
+                    "name": "Get All Contributions",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/contributions"
+                    }
+                },
+                {
+                    "name": "Create Contribution",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/contributions",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"profileId\": \"USER_ID_HERE\",\n  \"amount\": 5000,\n  \"month\": \"Janvier\",\n  \"year\": \"2026\",\n  \"status\": \"paid\",\n  \"paymentMethod\": \"Mobile Money\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Leisure",
+            "item": [
+                {
+                    "name": "Get All Events",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/leisure/events"
+                    }
+                },
+                {
+                    "name": "Create Event",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/leisure/events",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Pique-nique de fin d'année\",\n  \"description\": \"Journée détente à la plage\",\n  \"type\": \"pique-nique\",\n  \"location\": \"Plage de Lomé\",\n  \"costPerPerson\": 10000,\n  \"maxParticipants\": 50\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Register for Event",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/leisure/participants",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"eventId\": \"EVENT_ID_HERE\",\n  \"profileId\": \"USER_ID_HERE\",\n  \"status\": \"pending\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Storage",
+            "item": [
+                {
+                    "name": "Upload File",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/storage/upload",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "multipart/form-data"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": "/path/to/file.pdf"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Settings",
+            "item": [
+                {
+                    "name": "Get All Settings",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/settings"
+                    }
+                },
+                {
+                    "name": "Update Setting",
+                    "request": {
+                        "method": "PUT",
+                        "url": "{{base_url}}/settings/monthly_contribution",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"value\": \"6000\"\n}"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
