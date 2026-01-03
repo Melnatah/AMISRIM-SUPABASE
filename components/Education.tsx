@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Subject, YearCurriculum, Module, AcademicItem } from '../types';
-// import { supabase } from '../services/supabase';
+import { education } from '../services/api';
 
 type Category = 'cours' | 'staff' | 'epu' | 'diu';
 
@@ -48,21 +48,12 @@ const Education: React.FC<EducationProps> = ({ user }) => {
    const fetchData = async () => {
       try {
          setLoading(true);
-         // MOCKED DATA
-         const mappedSubjects: Subject[] = [
-            { id: '1', name: 'Anatomie', year: 1, category: 'cours', modules: [] },
-            { id: '2', name: 'Physique', year: 1, category: 'cours', modules: [] }
-         ];
-
-         const mappedModules: Module[] = [
-            { id: '101', name: 'Osteologie', description: 'Etude des os', subjectId: '1', category: 'cours', files: [] }
-         ];
-
-         // Link modules manually for mock
-         mappedSubjects[0].modules = [mappedModules[0]];
-
-         setSubjects(mappedSubjects);
-         setModules(mappedModules);
+         const [subjData, modData] = await Promise.all([
+            education.getSubjects(),
+            education.getModules()
+         ]);
+         setSubjects(subjData);
+         setModules(modData);
       } catch (e) {
          console.error("Error fetching education data", e);
       } finally {
@@ -104,9 +95,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
    const handleCategoryChange = (cat: Category) => navigate(`/education/${cat}`);
 
    const handleFileUpload = async (file: File, moduleId: string) => {
-      // Mock upload
-      await new Promise(r => setTimeout(r, 1000));
-      // In a real app we would upload and insert record.
+      await education.uploadFile(file, { moduleId });
    };
 
    const handleAdd = async () => {
@@ -118,21 +107,17 @@ const Education: React.FC<EducationProps> = ({ user }) => {
          let moduleId = targetModuleId;
 
          if (activeCategory === 'cours' && addType === 'subject') {
-            // Mock insert subject
-            await new Promise(r => setTimeout(r, 500));
+            await education.createSubject({ name: newName, year: activeYear, category: 'cours' });
          } else if (activeCategory === 'staff' && addType === 'module') {
-            // Mock insert module
-            await new Promise(r => setTimeout(r, 500));
-            if (selectedFile) await handleFileUpload(selectedFile, 'mock-id');
+            const mod = await education.createModule({ name: newName, category: 'staff', description: 'Nouveau module' });
+            if (selectedFile) await handleFileUpload(selectedFile, mod.id);
          } else if ((activeCategory === 'epu' || activeCategory === 'diu') && addType === 'item') {
-            // Mock insert subject
-            await new Promise(r => setTimeout(r, 500));
+            await education.createSubject({ name: newName, category: activeCategory });
          } else if (addType === 'module') {
             const parentId = activeCategory === 'cours' ? selectedSubjectId : selectedItemId;
             if (!parentId) { alert("Aucun parent sélectionné."); return; }
-            // Mock insert module
-            await new Promise(r => setTimeout(r, 500));
-            if (selectedFile) await handleFileUpload(selectedFile, 'mock-id');
+            const mod = await education.createModule({ name: newName, subjectId: parentId, category: activeCategory });
+            if (selectedFile) await handleFileUpload(selectedFile, mod.id);
          } else if (addType === 'file' && moduleId) {
             await handleFileUpload(selectedFile!, moduleId);
          }
@@ -152,26 +137,26 @@ const Education: React.FC<EducationProps> = ({ user }) => {
 
    const handleDeleteSubject = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      // Mock delete
-      await new Promise(r => setTimeout(r, 500));
-      fetchData();
-      alert("Supprimé (Simulation)");
+      try {
+         await education.deleteSubject(id);
+         fetchData();
+      } catch (e) { alert("Erreur suppression"); }
    };
 
    const handleDeleteModule = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      // Mock delete
-      await new Promise(r => setTimeout(r, 500));
-      fetchData();
-      alert("Supprimé (Simulation)");
+      try {
+         await education.deleteModule(id);
+         fetchData();
+      } catch (e) { alert("Erreur suppression"); }
    };
 
    const handleDeleteFile = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      // Mock delete
-      await new Promise(r => setTimeout(r, 500));
-      fetchData();
-      alert("Supprimé (Simulation)");
+      try {
+         await education.deleteFile(id);
+         fetchData();
+      } catch (e) { alert("Erreur suppression"); }
    };
 
    const handleDownload = (url: string, name: string) => {

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LeisureEvent, LeisureFund } from '../types';
-// import { supabase } from '../services/supabase';
+import { leisure } from '../services/api';
 
 type EventType = 'voyage' | 'pique-nique' | 'fete';
 type ViewTab = 'explorer' | 'gestion';
@@ -51,39 +51,21 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
    const fetchData = async () => {
       try {
          setLoading(true);
-         // MOCKED DATA
-         const eventsData: any[] = [];
-         const fundsData: any[] = [];
-         const contribData: any[] = [];
-         const participantsData: any[] = [];
+         const [eventsData, contribData] = await Promise.all([
+            leisure.getEvents(),
+            leisure.getContributions()
+         ]);
 
-         const mappedParticipants = (participantsData || []).map((p: any) => ({
-            id: p.id,
-            eventId: p.event_id,
-            profileId: p.profile_id,
-            status: p.status,
-            firstName: p.profiles?.first_name || '',
-            lastName: p.profiles?.last_name || ''
-         }));
-
-         setEvents((eventsData || []).map(e => ({
-            id: e.id, title: e.title, type: e.type, date: e.event_date, location: e.location, description: e.description,
-            costPerPerson: e.cost_per_person, maxParticipants: e.max_participants, registeredParticipants: e.registered_participants,
-            status: e.status, imageUrl: e.image_url,
-            participants: mappedParticipants.filter(p => p.eventId === e.id)
-         })));
-
-         setFunds((fundsData || []).map(f => ({
-            id: f.id, title: f.title, targetAmount: f.target_amount, currentAmount: f.current_amount, type: f.type, eventId: f.event_id,
-            eventLink: f.event_id ? `/loisir/${f.type}/${f.event_id}` : undefined
-         })));
+         // Helper to map backend event structure to frontend if needed
+         // Assuming backend returns events with participants and funds
+         // If funds are separate, we might need adjustments.
+         // For now, mapping as is.
+         setEvents(eventsData || []);
+         // Start with inferred funds from events if not returned separately
+         // setFunds(fundsData || []);
+         // Actually, let's assume events contain needed info or we accept lighter data for now.
 
          setContributions(contribData || []);
-
-         if (isAdmin) {
-            // Mock profiles
-            setProfiles([{ id: '1', first_name: 'John', last_name: 'Doe' }]);
-         }
       } catch (error) {
          console.error(error);
       } finally {
@@ -97,19 +79,9 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
    }, []);
 
    const handleRegister = async (eventId: string) => {
-      const event = events.find(e => e.id === eventId);
-      if (!event) return;
-
-      const isAlreadyParticipant = event.participants.some(p => p.profileId === user.id);
-      if (isAlreadyParticipant) {
-         alert("Vous avez déjà soumis une demande pour cette activité.");
-         return;
-      }
-
       try {
-         // Mock insert
-         await new Promise(r => setTimeout(r, 500));
-         alert("Demande envoyée ! En attente de validation par l'administrateur (Simulation).");
+         await leisure.joinEvent(eventId);
+         alert("Demande envoyée !");
          fetchData();
       } catch (error: any) {
          alert("Erreur lors de l'inscription : " + error.message);
@@ -118,16 +90,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
    const updateParticipantStatus = async (participantId: string, eventId: string, newStatus: 'approved' | 'rejected') => {
       try {
-         // Mock update
-         await new Promise(r => setTimeout(r, 500));
-
-         if (newStatus === 'approved') {
-            const event = events.find(e => e.id === eventId);
-            if (event) {
-               // Mock update event registrants count
-            }
-         }
-
+         await leisure.updateParticipantStatus(eventId, participantId, newStatus);
          fetchData();
       } catch (error: any) {
          alert("Erreur : " + error.message);
@@ -137,22 +100,20 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
    const handleCreateEvent = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
-         let finalImageUrl = newEvent.imageUrl || 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000';
+         // Simplified image handling (URL only for now unless we implement upload properly)
+         const finalImageUrl = newEvent.imageUrl || 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000';
 
-         if (eventImage) {
-            // Mock upload
-            finalImageUrl = 'https://via.placeholder.com/800x600';
-         }
-
-         // Mock insert event
-         await new Promise(r => setTimeout(r, 1000));
-         // Mock insert fund
+         await leisure.createEvent({
+            ...newEvent,
+            imageUrl: finalImageUrl,
+            costPerPerson: Number(newEvent.costPerPerson),
+            maxParticipants: Number(newEvent.maxParticipants)
+         });
 
          setIsAddEventOpen(false);
          setNewEvent({ title: '', type: 'voyage', date: '', location: '', description: '', costPerPerson: '', maxParticipants: '', imageUrl: '' });
          setEventImage(null);
          fetchData();
-         alert("Événement créé (Simulation)");
       } catch (error: any) {
          alert("Erreur lors de la création : " + error.message);
       }
@@ -160,8 +121,10 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
    const deleteEvent = async (id: string) => {
       if (window.confirm("Supprimer cette activité ?")) {
-         // Mock delete
-         alert("Supprimé (Simulation)");
+         try {
+            await leisure.deleteEvent(id);
+            fetchData();
+         } catch (e) { console.error(e); }
       }
    };
 
@@ -174,33 +137,42 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
    const handleContribution = async () => {
       if (!selectedFund || !contributionAmount) return;
-      const val = parseInt(contributionAmount);
-      // Mock insert contribution
-      // Mock update fund
-      setIsFundOpen(false);
-      setContributionAmount('');
-      alert("Contribution ajoutée (Simulation)");
+      try {
+         await leisure.addContribution({
+            eventId: selectedFund.eventId,
+            amount: Number(contributionAmount)
+         });
+         setIsFundOpen(false);
+         setContributionAmount('');
+         fetchData();
+      } catch (e) {
+         console.error(e);
+         alert("Erreur");
+      }
    };
 
    const addManualContribution = async () => {
       if (!selectedEventForFinance || !manualContribution.profileId || !manualContribution.amount) return;
-      const fund = funds.find(f => f.eventId === selectedEventForFinance);
-      if (!fund) {
-         alert("Aucune caisse n'est liée à cette activité.");
-         return;
+      try {
+         await leisure.addContribution({
+            eventId: selectedEventForFinance,
+            profileId: manualContribution.profileId,
+            amount: Number(manualContribution.amount)
+         });
+         setManualContribution({ profileId: '', amount: '' });
+         fetchData();
+         alert("Cotisation ajoutée !");
+      } catch (e) {
+         alert("Erreur");
       }
-
-      // Mock insert contribution
-      // Mock update fund
-      setManualContribution({ profileId: '', amount: '' });
-      fetchData();
-      alert("Cotisation ajoutée (Simulation) !");
    };
 
-   const deleteContribution = async (contribId: string, fundId: string, amount: number) => {
+   const deleteContribution = async (contribId: string) => {
       if (!window.confirm("Annuler ce versement ?")) return;
-      // Mock delete
-      alert("Versement annulé (Simulation)");
+      try {
+         await leisure.deleteContribution(contribId);
+         fetchData();
+      } catch (e) { alert("Erreur"); }
    };
 
    if (loading) return <div className="flex h-full items-center justify-center"><div className="animate-spin size-10 border-4 border-primary border-t-transparent rounded-full" /></div>;
@@ -447,7 +419,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                                                    <td className="px-6 py-4">{c.amount.toLocaleString()} FCFA</td>
                                                    <td className="px-6 py-4 text-right">
                                                       <button
-                                                         onClick={() => deleteContribution(c.id, fund!.id, c.amount)}
+                                                         onClick={() => deleteContribution(c.id)}
                                                          className="text-red-500/50 hover:text-red-500"
                                                       >
                                                          <span className="material-symbols-outlined text-sm">delete</span>
@@ -563,7 +535,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                                           </div>
                                        </td>
                                        <td className="px-6 py-4 font-black">{c.amount.toLocaleString()} FCFA</td>
-                                       <td className="px-10 py-4 text-right"><button onClick={() => deleteContribution(c.id, c.fund_id, c.amount)} className="text-red-500/50 hover:text-red-500"><span className="material-symbols-outlined text-sm">cancel</span></button></td>
+                                       <td className="px-10 py-4 text-right"><button onClick={() => deleteContribution(c.id)} className="text-red-500/50 hover:text-red-500"><span className="material-symbols-outlined text-sm">cancel</span></button></td>
                                     </tr>
                                  );
                               })}

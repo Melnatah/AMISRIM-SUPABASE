@@ -142,10 +142,13 @@ export const contributions = {
 export const leisure = {
     getEvents: () => fetchAPI('/leisure/events'),
     createEvent: (data: any) => fetchAPI('/leisure/events', { method: 'POST', body: JSON.stringify(data) }),
+    deleteEvent: (id: string) => fetchAPI(`/leisure/events/${id}`, { method: 'DELETE' }),
     joinEvent: (eventId: string) => fetchAPI(`/leisure/events/${eventId}/join`, { method: 'POST' }),
+    updateParticipantStatus: (eventId: string, participantId: string, status: string) => fetchAPI(`/leisure/events/${eventId}/participants/${participantId}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 
     getContributions: () => fetchAPI('/leisure/contributions'),
     addContribution: (data: any) => fetchAPI('/leisure/contributions', { method: 'POST', body: JSON.stringify(data) }),
+    deleteContribution: (id: string) => fetchAPI(`/leisure/contributions/${id}`, { method: 'DELETE' }),
 };
 
 export const attendance = {

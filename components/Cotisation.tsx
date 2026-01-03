@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Contribution } from '../types';
-// import { supabase } from '../services/supabase';
+import { contributions } from '../services/api';
 
 interface CotisationProps {
   user: { id: string, name: string, role: 'admin' | 'resident' };
@@ -21,15 +21,13 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
 
   const fetchContributions = async () => {
     try {
-      // MOCKED DATA
-      const data: any[] = [];
-
-      setContributions((data || []).map(c => ({
+      const data = await contributions.getAll();
+      setContributions((data || []).map((c: any) => ({
         id: c.id,
-        contributorName: c.contributor_name || 'Inconnu',
-        contributorType: (c.contributor_type as 'Resident' | 'Partenaire') || 'Resident',
+        contributorName: c.contributorName || 'Inconnu',
+        contributorType: c.contributorType || 'Resident',
         amount: c.amount,
-        date: c.date || new Date(c.created_at).toLocaleDateString('fr-FR'),
+        date: c.date || new Date(c.createdAt).toLocaleDateString('fr-FR'),
         month: c.month || 'Février',
         reason: c.reason || 'Autre'
       })));
@@ -57,13 +55,17 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
     if (!formData.contributorName || !formData.amount) return;
 
     try {
-      // Mock insert
-      await new Promise(r => setTimeout(r, 500));
+      await contributions.create({
+        contributorName: formData.contributorName,
+        contributorType: formData.contributorType,
+        amount: Number(formData.amount),
+        month: formData.month,
+        reason: formData.reason
+      });
 
       fetchContributions();
       setIsModalOpen(false);
       setFormData({ contributorName: '', contributorType: 'Resident', amount: '', month: 'Février', reason: 'Mensualité' });
-      alert("Ajouté (Simulation)");
     } catch (e) {
       console.error("Error adding contribution", e);
       alert("Erreur lors de l'ajout");
@@ -73,10 +75,8 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
   const deleteContribution = async (id: string) => {
     if (window.confirm("Supprimer cette entrée ?")) {
       try {
-        // Mock delete
-        await new Promise(r => setTimeout(r, 500));
+        await contributions.delete(id);
         fetchContributions();
-        alert("Supprimé (Simulation)");
       } catch (e) {
         console.error("Error deleting", e);
         alert("Erreur lors de la suppression");
