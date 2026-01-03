@@ -7,7 +7,7 @@ WORKDIR /app
 
 # Copie optimisée des dépendances pour le cache layer
 COPY package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Copie du code source
 COPY . .
