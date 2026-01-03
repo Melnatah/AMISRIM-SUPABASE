@@ -13,5 +13,14 @@ export default defineConfig({
     port: 4173,
     strictPort: true,
     allowedHosts: 'all'
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-${Date.now()}.js`,
+        chunkFileNames: `assets/[name]-${Date.now()}.js`,
+        assetFileNames: `assets/[name]-${Date.now()}.[ext]`
+      }
+    }
   }
 })
