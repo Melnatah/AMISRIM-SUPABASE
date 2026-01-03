@@ -6,6 +6,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Copie optimisée des dépendances pour le cache layer
+# Force rebuild: 2026-01-03T12:27:00Z
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
