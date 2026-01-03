@@ -7,10 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dépendances
 node_modules
 dist
 dist-ssr
 *.local
+
+# Environnement et Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
 
 # Editor directories and files
 .vscode/*
@@ -22,3 +30,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Fichiers de build Docker locaux
+docker-compose.yml
+# On garde les fichiers api-backend car ils sont dans le même repo

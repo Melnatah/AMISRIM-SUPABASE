@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Subject, YearCurriculum, Module, AcademicItem } from '../types';
-import { supabase } from '../services/supabase';
+// import { supabase } from '../services/supabase';
 
 type Category = 'cours' | 'staff' | 'epu' | 'diu';
 
@@ -48,36 +48,18 @@ const Education: React.FC<EducationProps> = ({ user }) => {
    const fetchData = async () => {
       try {
          setLoading(true);
-         const { data: subData, error: subError } = await supabase.from('subjects').select('*');
-         if (subError) throw subError;
+         // MOCKED DATA
+         const mappedSubjects: Subject[] = [
+            { id: '1', name: 'Anatomie', year: 1, category: 'cours', modules: [] },
+            { id: '2', name: 'Physique', year: 1, category: 'cours', modules: [] }
+         ];
 
-         const { data: modData, error: modError } = await supabase.from('modules').select('*, files (*)');
-         if (modError) throw modError;
+         const mappedModules: Module[] = [
+            { id: '101', name: 'Osteologie', description: 'Etude des os', subjectId: '1', category: 'cours', files: [] }
+         ];
 
-         const mappedSubjects: Subject[] = (subData || []).map(s => ({
-            id: s.id,
-            name: s.name,
-            modules: [],
-            year: parseInt(s.year) || 0,
-            category: s.category || 'cours'
-         }));
-
-         const mappedModules: Module[] = (modData || []).map(m => ({
-            id: m.id,
-            name: m.name,
-            description: m.description,
-            subjectId: m.subject_id,
-            category: m.category,
-            files: (m.files || []).map((f: any) => ({
-               id: f.id,
-               name: f.name,
-               type: f.type,
-               url: f.url,
-               size: f.size,
-               author: f.author,
-               date: new Date(f.created_at).toLocaleDateString()
-            }))
-         }));
+         // Link modules manually for mock
+         mappedSubjects[0].modules = [mappedModules[0]];
 
          setSubjects(mappedSubjects);
          setModules(mappedModules);
@@ -90,15 +72,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
 
    useEffect(() => {
       fetchData();
-      const channel = supabase
-         .channel('education-changes')
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'subjects' }, fetchData)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'modules' }, fetchData)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'files' }, fetchData)
-         .subscribe();
-      return () => {
-         supabase.removeChannel(channel);
-      };
+      // Realtime subscription removed
    }, []);
 
    const getCurriculum = (): YearCurriculum[] => {
@@ -130,30 +104,9 @@ const Education: React.FC<EducationProps> = ({ user }) => {
    const handleCategoryChange = (cat: Category) => navigate(`/education/${cat}`);
 
    const handleFileUpload = async (file: File, moduleId: string) => {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${moduleId}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-         .from('education')
-         .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-         .from('education')
-         .getPublicUrl(filePath);
-
-      const { error: dbError } = await supabase.from('files').insert([{
-         name: file.name,
-         url: publicUrl,
-         module_id: moduleId,
-         type: file.type.includes('pdf') ? 'pdf' : file.type.includes('image') ? 'image' : 'video',
-         size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-         author: 'Admin'
-      }]);
-
-      if (dbError) throw dbError;
+      // Mock upload
+      await new Promise(r => setTimeout(r, 1000));
+      // In a real app we would upload and insert record.
    };
 
    const handleAdd = async () => {
@@ -165,19 +118,21 @@ const Education: React.FC<EducationProps> = ({ user }) => {
          let moduleId = targetModuleId;
 
          if (activeCategory === 'cours' && addType === 'subject') {
-            await supabase.from('subjects').insert([{ name: newName, year: activeYear.toString(), category: 'cours' }]);
+            // Mock insert subject
+            await new Promise(r => setTimeout(r, 500));
          } else if (activeCategory === 'staff' && addType === 'module') {
-            const { data, error } = await supabase.from('modules').insert([{ name: newName, category: 'staff', description: 'Nouveau module de staff' }]).select();
-            if (error) throw error;
-            if (selectedFile && data && data[0]) await handleFileUpload(selectedFile, data[0].id);
+            // Mock insert module
+            await new Promise(r => setTimeout(r, 500));
+            if (selectedFile) await handleFileUpload(selectedFile, 'mock-id');
          } else if ((activeCategory === 'epu' || activeCategory === 'diu') && addType === 'item') {
-            await supabase.from('subjects').insert([{ name: newName, category: activeCategory, year: '0' }]);
+            // Mock insert subject
+            await new Promise(r => setTimeout(r, 500));
          } else if (addType === 'module') {
             const parentId = activeCategory === 'cours' ? selectedSubjectId : selectedItemId;
             if (!parentId) { alert("Aucun parent sélectionné."); return; }
-            const { data, error } = await supabase.from('modules').insert([{ name: newName, subject_id: parentId, description: 'Nouveau module' }]).select();
-            if (error) throw error;
-            if (selectedFile && data && data[0]) await handleFileUpload(selectedFile, data[0].id);
+            // Mock insert module
+            await new Promise(r => setTimeout(r, 500));
+            if (selectedFile) await handleFileUpload(selectedFile, 'mock-id');
          } else if (addType === 'file' && moduleId) {
             await handleFileUpload(selectedFile!, moduleId);
          }
@@ -197,32 +152,26 @@ const Education: React.FC<EducationProps> = ({ user }) => {
 
    const handleDeleteSubject = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      const { error } = await supabase.from('subjects').delete().eq('id', id);
-      if (error) {
-         alert("Erreur lors de la suppression : " + error.message);
-      } else {
-         fetchData();
-      }
+      // Mock delete
+      await new Promise(r => setTimeout(r, 500));
+      fetchData();
+      alert("Supprimé (Simulation)");
    };
 
    const handleDeleteModule = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      const { error } = await supabase.from('modules').delete().eq('id', id);
-      if (error) {
-         alert("Erreur lors de la suppression : " + error.message);
-      } else {
-         fetchData();
-      }
+      // Mock delete
+      await new Promise(r => setTimeout(r, 500));
+      fetchData();
+      alert("Supprimé (Simulation)");
    };
 
    const handleDeleteFile = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      const { error } = await supabase.from('files').delete().eq('id', id);
-      if (error) {
-         alert("Erreur lors de la suppression : " + error.message);
-      } else {
-         fetchData();
-      }
+      // Mock delete
+      await new Promise(r => setTimeout(r, 500));
+      fetchData();
+      alert("Supprimé (Simulation)");
    };
 
    const handleDownload = (url: string, name: string) => {

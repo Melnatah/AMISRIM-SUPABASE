@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, Legend, RadialBarChart, RadialBar,
 } from 'recharts';
-import { supabase } from '../services/supabase';
+// import { supabase } from '../services/supabase'; // Removed Supabase
 
 const COLORS = ['#0d59f2', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
@@ -62,81 +62,32 @@ const Statistics: React.FC = () => {
     try {
       setLoading(true);
 
-      const { data: contribs } = await supabase.from('contributions').select('amount, created_at');
-      const { data: leisureContribs } = await supabase.from('leisure_contributions').select('amount, created_at');
+      // MOCKED DATA - Supabase Removed
+      const contribs: any[] = [];
+      const leisureContribs: any[] = [];
+      const events: any[] = [];
+      const participants: any[] = [];
+      const attendance: any[] = [];
+      const profiles: any[] = [];
+      const filesData: any[] = [];
 
-      const totalCommune = (contribs || []).reduce((acc, c) => acc + Number(c.amount), 0);
-      const totalLeisure = (leisureContribs || []).reduce((acc, c) => acc + Number(c.amount), 0);
-
-      const { data: filesData, count: fileCount } = await supabase.from('files').select('id, created_at', { count: 'exact' });
-      const { count: moduleCount } = await supabase.from('modules').select('*', { count: 'exact', head: true });
-
-      const { data: profiles } = await supabase.from('profiles').select('hospital, status');
-      const { count: siteCountRes } = await supabase.from('sites').select('*', { count: 'exact', head: true });
-      const approvedProfiles = (profiles || []).filter(p => p.status === 'approved');
-
-      const { data: events } = await supabase.from('leisure_events').select('*');
-      const { data: participants } = await supabase.from('leisure_participants').select('*').eq('status', 'approved');
-      const { data: attendance } = await supabase.from('attendance').select('*').eq('status', 'confirmed');
+      const totalCommune = 0;
+      const totalLeisure = 0;
+      const fileCount = 0;
+      const moduleCount = 0;
+      const siteCountRes = 0;
+      const approvedProfiles: any[] = [];
 
       const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
-      const currentYear = new Date().getFullYear();
 
-      const monthlyFinancial = monthNames.map((name, index) => {
-        const commune = (contribs || [])
-          .filter(c => {
-            const d = new Date(c.created_at);
-            return d.getMonth() === index && d.getFullYear() === currentYear;
-          })
-          .reduce((sum, c) => sum + Number(c.amount), 0);
-
-        const loisirs = (leisureContribs || [])
-          .filter(c => {
-            const d = new Date(c.created_at);
-            return d.getMonth() === index && d.getFullYear() === currentYear;
-          })
-          .reduce((sum, c) => sum + Number(c.amount), 0);
-
-        return { month: name, commune, loisirs };
-      }).filter(d => d.commune > 0 || d.loisirs > 0 || monthNames.indexOf(d.month) <= new Date().getMonth());
-
-      const monthlyAcademic = monthNames.map((name, index) => {
-        return {
-          month: name,
-          presentations: (events || []).filter(e => {
-            const d = new Date(e.event_date);
-            return d.getMonth() === index && d.getFullYear() === currentYear;
-          }).length,
-          documents: (filesData || []).filter(f => {
-            const d = new Date(f.created_at);
-            return d.getMonth() === index && d.getFullYear() === currentYear;
-          }).length
-        };
-      }).filter((_, i) => i <= new Date().getMonth());
-
-      const eventTypes = ['voyage', 'pique-nique', 'fete'];
-      const eventByType = eventTypes.map(type => ({
-        name: type.charAt(0).toUpperCase() + type.slice(1),
-        value: (events || []).filter(e => e.type === type).length
-      })).filter(v => v.value > 0);
-
-      const siteDistribution = (profiles || [])
-        .filter(p => p.hospital)
-        .reduce((acc: any, p) => {
-          acc[p.hospital] = (acc[p.hospital] || 0) + 1;
-          return acc;
-        }, {});
-
-      const sitesChartData = Object.entries(siteDistribution).map(([name, count]) => ({
-        name: name.length > 15 ? name.substring(0, 12) + '...' : name,
-        occupes: count,
-        capacite: 6
-      }));
+      const monthlyFinancial = monthNames.map((name) => ({ month: name, commune: 0, loisirs: 0 }));
+      const monthlyAcademic = monthNames.map((name) => ({ month: name, presentations: 0, documents: 0 }));
+      const sitesChartData: any[] = [];
 
       setDbStats({
         totalFinance: totalCommune,
         leisureFinance: totalLeisure,
-        memberCount: (profiles || []).length,
+        memberCount: 0,
         docCount: fileCount || 0,
         staffCount: moduleCount || 0,
         siteCount: siteCountRes || 0,
@@ -144,21 +95,17 @@ const Statistics: React.FC = () => {
         financialChart: monthlyFinancial,
         academicChart: monthlyAcademic,
         sitesChart: sitesChartData,
-        activitiesChart: (events || []).map(e => ({
-          name: e.title,
-          inscrits: (participants || []).filter(p => p.event_id === e.id).length,
-          max: e.max_participants || 50
-        })),
+        activitiesChart: [],
         attendanceStats: {
-          staff: (attendance || []).filter(a => a.item_type === 'staff').length,
-          epu: (attendance || []).filter(a => a.item_type === 'epu').length,
-          diu: (attendance || []).filter(a => a.item_type === 'diu').length,
-          stage: (attendance || []).filter(a => a.item_type === 'stage').length
+          staff: 0,
+          epu: 0,
+          diu: 0,
+          stage: 0
         },
         eventStats: {
-          total: (events || []).length,
-          participants: (participants || []).length,
-          byType: eventByType
+          total: 0,
+          participants: 0,
+          byType: []
         }
       });
 

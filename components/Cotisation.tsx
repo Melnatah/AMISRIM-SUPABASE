@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Contribution } from '../types';
-import { supabase } from '../services/supabase';
+// import { supabase } from '../services/supabase';
 
 interface CotisationProps {
   user: { id: string, name: string, role: 'admin' | 'resident' };
@@ -21,12 +21,8 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
 
   const fetchContributions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('contributions')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      // MOCKED DATA
+      const data: any[] = [];
 
       setContributions((data || []).map(c => ({
         id: c.id,
@@ -46,18 +42,7 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
 
   useEffect(() => {
     fetchContributions();
-
-    // Subscribe to real-time changes
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contributions' }, () => {
-        fetchContributions();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Realtime subscription removed
   }, []);
 
   const totalFund = contributions.reduce((acc, curr) => acc + curr.amount, 0);
@@ -72,20 +57,13 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
     if (!formData.contributorName || !formData.amount) return;
 
     try {
-      const { error } = await supabase.from('contributions').insert([{
-        contributor_name: formData.contributorName,
-        contributor_type: formData.contributorType,
-        amount: parseInt(formData.amount),
-        month: formData.month,
-        reason: formData.reason,
-        date: new Date().toLocaleDateString('fr-FR')
-      }]);
-
-      if (error) throw error;
+      // Mock insert
+      await new Promise(r => setTimeout(r, 500));
 
       fetchContributions();
       setIsModalOpen(false);
       setFormData({ contributorName: '', contributorType: 'Resident', amount: '', month: 'Février', reason: 'Mensualité' });
+      alert("Ajouté (Simulation)");
     } catch (e) {
       console.error("Error adding contribution", e);
       alert("Erreur lors de l'ajout");
@@ -95,9 +73,10 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
   const deleteContribution = async (id: string) => {
     if (window.confirm("Supprimer cette entrée ?")) {
       try {
-        const { error } = await supabase.from('contributions').delete().eq('id', id);
-        if (error) throw error;
+        // Mock delete
+        await new Promise(r => setTimeout(r, 500));
         fetchContributions();
+        alert("Supprimé (Simulation)");
       } catch (e) {
         console.error("Error deleting", e);
         alert("Erreur lors de la suppression");

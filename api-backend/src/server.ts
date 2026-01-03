@@ -36,9 +36,13 @@ dotenv.config();
 
 const app: Express = express();
 const httpServer = createServer(app);
+const origin = process.env.CORS_ORIGIN?.includes(',')
+    ? process.env.CORS_ORIGIN.split(',')
+    : (process.env.CORS_ORIGIN || 'http://localhost:5173');
+
 const io = new SocketIOServer(httpServer, {
     cors: {
-        origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+        origin,
         methods: ['GET', 'POST'],
         credentials: true,
     },
@@ -49,7 +53,7 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(helmet());
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin,
     credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));

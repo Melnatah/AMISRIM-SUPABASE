@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabase';
+import { profiles } from '../services/api';
 import { Profile } from '../types';
 
 interface ProfileProps {
@@ -22,34 +22,40 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
         hospital: ''
     });
 
+    // MOCKED DATA - Supabase Removed
+
+
+    const fetchProfile = async () => {
+        try {
+            const fetchedProfile = await profiles.getMe();
+            setProfile({
+                id: fetchedProfile.id,
+                first_name: fetchedProfile.first_name || '',
+                last_name: fetchedProfile.last_name || '',
+                email: fetchedProfile.email || '',
+                phone: fetchedProfile.phone || '',
+                year: fetchedProfile.year || '',
+                hospital: fetchedProfile.hospital || '',
+                status: fetchedProfile.status || 'pending',
+                created_at: fetchedProfile.created_at || new Date().toISOString()
+            });
+            setFormData({
+                first_name: fetchedProfile.first_name || '',
+                last_name: fetchedProfile.last_name || '',
+                email: fetchedProfile.email || '',
+                phone: fetchedProfile.phone || '',
+                hospital: fetchedProfile.hospital || '',
+                year: fetchedProfile.year || ''
+            });
+        } catch (error: any) {
+            console.error('Error fetching profile:', error);
+            setMessage({ type: 'error', text: 'Erreur lors du chargement du profil : ' + error.message });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single();
-
-                if (error) throw error;
-                if (data) {
-                    setProfile(data);
-                    setFormData({
-                        first_name: data.first_name || '',
-                        last_name: data.last_name || '',
-                        email: data.email || '',
-                        phone: data.phone || '',
-                        year: data.year || '',
-                        hospital: data.hospital || ''
-                    });
-                }
-            } catch (err) {
-                console.error('Error fetching profile:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchProfile();
     }, [user.id]);
 
@@ -59,24 +65,9 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
         setMessage(null);
 
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({
-                    first_name: formData.first_name,
-                    last_name: formData.last_name,
-                    email: formData.email,
-                    phone: formData.phone,
-                    year: formData.year,
-                    hospital: formData.hospital,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', user.id);
-
-            if (error) throw error;
+            await profiles.updateMe(formData);
             setMessage({ type: 'success', text: 'Profil mis à jour avec succès !' });
-
-            // Update local storage or trigger a refresh if needed
-            // window.location.reload(); 
+            fetchProfile(); // Re-fetch profile to update UI with latest data
         } catch (err: any) {
             console.error('Error updating profile:', err);
             setMessage({ type: 'error', text: 'Erreur lors de la mise à jour : ' + err.message });

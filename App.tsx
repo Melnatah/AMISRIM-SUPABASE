@@ -17,7 +17,7 @@ import SplashScreen from './components/SplashScreen';
 import Profile from './components/Profile';
 import { MOCK_SITES } from './constants';
 import { Site } from './types';
-import { supabase } from './services/supabase';
+import { auth, sites as sitesService } from './services/api';
 
 interface User {
   id: string;
@@ -32,66 +32,35 @@ const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    const handleUserSession = async (session: any) => {
-      if (!session?.user) {
-        setUser(null);
-        return;
+    const initApp = async () => {
+      // 1. Check Auth
+      if (auth.isAuthenticated()) {
+        const user = auth.getCurrentUser();
+        if (user) {
+          const name = user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : user.email.split('@')[0];
+          // Normalisation du rôle (ADMIN -> admin)
+          const role = (user.role === 'ADMIN' || user.role === 'admin') ? 'admin' : 'resident';
+
+          setUser({
+            id: user.id,
+            name,
+            role: role as 'admin' | 'resident'
+          });
+        }
       }
 
-      const { user_metadata } = session.user;
-      const initialName = user_metadata.full_name || user_metadata.firstName || session.user.email?.split('@')[0] || 'Utilisateur';
-      const initialRole = session.user.email?.includes('admin') ? 'admin' : 'resident';
-
-      // Set initial user state immediately from auth metadata to unblock the UI
-      setUser({ id: session.user.id, name: initialName, role: initialRole as 'admin' | 'resident' });
-
-      // Then try to enrich with profile data
+      // 2. Fetch Sites
       try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role, first_name, last_name')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profile && !error) {
-          const name = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || initialName;
-          const role = (profile.role === 'admin' || profile.role === 'resident') ? profile.role : initialRole;
-          setUser({ id: session.user.id, name, role: role as 'admin' | 'resident' });
+        const sitesData = await sitesService.getAll();
+        if (Array.isArray(sitesData)) {
+          setSites(sitesData);
         }
       } catch (err) {
-        console.error("Error fetching profile enrichment:", err);
+        console.error("Error fetching sites:", err);
       }
     };
 
-    // Check initial session
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      handleUserSession(session);
-    };
-    checkSession();
-
-    // Fetch real sites for sidebar
-    const fetchSites = async () => {
-      const { data } = await supabase.from('sites').select('*');
-      if (data) setSites(data as Site[]);
-    };
-    fetchSites();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleUserSession(session);
-    });
-
-    // Listen for sites changes
-    const sitesChannel = supabase
-      .channel('sites-all')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sites' }, fetchSites)
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-      supabase.removeChannel(sitesChannel);
-    };
+    initApp();
   }, []);
 
   const handleLogin = (name: string) => {
@@ -101,7 +70,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    auth.logout();
     setUser(null);
   };
 

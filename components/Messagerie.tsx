@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabase';
+// import { supabase } from '../services/supabase';
 import { Message } from '../types';
 
 interface MessagerieProps {
@@ -23,12 +23,8 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
 
   const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      // MOCKED DATA
+      const data: any[] = []; // No messages for now
 
       const mappedMessages: Message[] = (data || []).map(m => ({
         id: m.id,
@@ -53,19 +49,7 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
 
   useEffect(() => {
     fetchData();
-
-    // Abonnement en temps réel
-    const channel = supabase
-      .channel('public:messages')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-        console.log('Changement détecté dans les messages:', payload);
-        fetchData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Realtime subscription removed
   }, []);
 
   const filteredMessages = messages.filter(m => {
@@ -92,19 +76,12 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
     if (!newMessage.subject || !newMessage.content || !user) return;
 
     try {
-      const { error } = await supabase.from('messages').insert([{
-        sender: user.name,
-        role: user.role === 'admin' ? 'Conseil d\'Administration' : 'Résident',
-        subject: newMessage.subject,
-        content: newMessage.content,
-        priority: newMessage.priority
-      }]);
-
-      if (error) throw error;
+      // Mock insert
+      await new Promise(r => setTimeout(r, 500));
 
       setIsComposeModalOpen(false);
       setNewMessage({ subject: '', priority: 'info', content: '' });
-      alert("Votre message a été diffusé avec succès !");
+      alert("Votre message a été diffusé avec succès (Simulation) !");
     } catch (error) {
       console.error('Error sending message:', error);
       alert("Erreur lors de l'envoi du message.");
@@ -115,18 +92,12 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
     if (!window.confirm("Voulez-vous vraiment supprimer ce message ? Cette action sera appliquée pour tous les utilisateurs.")) return;
 
     try {
-      const { error } = await supabase
-        .from('messages')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
+      // Mock delete
       setMessages(prev => prev.filter(m => m.id !== id));
       if (selectedMessage?.id === id) {
         setSelectedMessage(null);
       }
-      alert("Message supprimé avec succès.");
+      alert("Message supprimé avec succès (Simulation).");
     } catch (error: any) {
       console.error('Error deleting message:', error);
       alert("Erreur lors de la suppression du message : " + (error.message || "Erreur inconnue"));

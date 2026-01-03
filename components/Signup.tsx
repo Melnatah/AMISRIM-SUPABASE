@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { supabase } from '../services/supabase';
+import { auth } from '../services/api';
 
 interface SignupProps {
   onBackToLogin: () => void;
@@ -25,26 +25,23 @@ const Signup: React.FC<SignupProps> = ({ onBackToLogin }) => {
     setLoading(true);
     setError('');
 
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: {
+    try {
+      await auth.register(
+        formData.email,
+        formData.password,
+        {
           firstName: formData.firstName,
           lastName: formData.lastName,
           year: formData.year,
           hospital: formData.hospital,
           phone: formData.phone,
-          role: 'resident', // Default role
-        },
-      },
-    });
-
-    if (signUpError) {
-      setError(signUpError.message);
-      setLoading(false);
-    } else {
+          role: 'resident',
+        }
+      );
       setSubmitted(true);
+    } catch (err: any) {
+      setError(err.message || "Erreur lors de l'inscription");
+    } finally {
       setLoading(false);
     }
   };

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../services/supabase';
+// import { supabase } from '../services/supabase';
 
 const DicomViewer: React.FC = () => {
   const navigate = useNavigate();
@@ -10,15 +10,9 @@ const DicomViewer: React.FC = () => {
   useEffect(() => {
     const launchPacs = async () => {
       try {
-        const { data, error } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('key', 'pacs_url')
-          .single();
+        // MOCKED
+        const pacsUrl = "https://demo.pacs.com"; // Mock URL
 
-        if (error) throw error;
-
-        const pacsUrl = data?.value;
         if (pacsUrl) {
           window.open(pacsUrl, '_blank');
           navigate('/');

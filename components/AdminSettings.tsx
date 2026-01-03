@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabase';
+// import { supabase } from '../services/supabase';
 
 type AdminTab = 'users' | 'finance' | 'attendance' | 'broadcast' | 'system';
 
@@ -30,67 +30,45 @@ const AdminSettings: React.FC = () => {
   const [pendingAttendance, setPendingAttendance] = useState<any[]>([]);
 
   const fetchSettings = async () => {
-    const { data } = await supabase.from('settings').select('*');
-    if (data) {
-      data.forEach(setting => {
-        if (setting.key === 'pacs_url') setPacsUrl(setting.value);
-        if (setting.key === 'maintenance_mode') setMaintenanceMode(setting.value === 'true');
-        if (setting.key === 'monthly_fee') setMonthlyFee(setting.value);
-      });
-    }
+    // Mock settings
+    setPacsUrl("https://demo.pacs.com");
+    setMaintenanceMode(false);
+    setMonthlyFee('5000');
   };
 
   const fetchPendingUsers = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('status', 'pending');
-
-    if (data) {
-      setPendingUsers(data.map(u => ({
-        id: u.id,
-        name: `${u.first_name || ''} ${u.last_name || ''}`,
-        hospital: u.hospital || 'N/A',
-        year: u.year ? `${u.year} année` : 'N/A',
-        date: new Date(u.created_at).toLocaleDateString()
-      })));
-    }
+    // Mock pending users
+    const data: any[] = [];
+    setPendingUsers(data.map(u => ({
+      id: u.id,
+      name: `${u.first_name || ''} ${u.last_name || ''}`,
+      hospital: u.hospital || 'N/A',
+      year: u.year ? `${u.year} année` : 'N/A',
+      date: new Date(u.created_at).toLocaleDateString()
+    })));
   };
 
   const fetchApprovedUsers = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('status', 'approved');
-
-    if (data) {
-      setApprovedUsers(data.map(u => ({
-        id: u.id,
-        name: `${u.first_name || ''} ${u.last_name || ''}`,
-        hospital: u.hospital || 'N/A',
-        year: u.year ? `${u.year} année` : 'N/A',
-        date: new Date(u.created_at).toLocaleDateString(),
-        role: u.role || 'resident'
-      })));
-    }
+    // Mock approved users
+    const data: any[] = [];
+    setApprovedUsers(data.map(u => ({
+      id: u.id,
+      name: `${u.first_name || ''} ${u.last_name || ''}`,
+      hospital: u.hospital || 'N/A',
+      year: u.year ? `${u.year} année` : 'N/A',
+      date: new Date(u.created_at).toLocaleDateString(),
+      role: u.role || 'resident'
+    })));
   };
 
   const fetchAllContributions = async () => {
-    const { data } = await supabase
-      .from('contributions')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    if (data) setAllContributions(data);
+    // Mock contributions
+    setAllContributions([]);
   };
 
   const fetchPendingAttendance = async () => {
-    const { data } = await supabase
-      .from('attendance')
-      .select('*, profiles(first_name, last_name, hospital)')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-    if (data) setPendingAttendance(data);
+    // Mock attendance
+    setPendingAttendance([]);
   };
 
   useEffect(() => {
@@ -99,21 +77,12 @@ const AdminSettings: React.FC = () => {
     fetchApprovedUsers();
     fetchAllContributions();
     fetchPendingAttendance();
-
-    const channel = supabase
-      .channel('admin-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, fetchSettings)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contributions' }, fetchAllContributions)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, fetchPendingAttendance)
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Subscription removed
   }, []);
 
   const saveSetting = async (key: string, value: string) => {
-    await supabase.from('settings').upsert({ key, value });
+    // Mock save
+    await new Promise(r => setTimeout(r, 500));
   };
 
   const handleSavePacs = async () => {
@@ -133,84 +102,56 @@ const AdminSettings: React.FC = () => {
   };
 
   const handleApproveUser = async (id: string) => {
-    const { error } = await supabase.from('profiles').update({ status: 'approved' }).eq('id', id);
-    if (!error) {
+    try {
+      // Mock update
+      await new Promise(r => setTimeout(r, 500));
       setPendingUsers(prev => prev.filter(u => u.id !== id));
-      alert("Utilisateur approuvé avec succès.");
-    } else {
-      alert("Erreur lors de l'approbation.");
+      alert("Utilisateur approuvé avec succès (Simulation).");
+    } catch (e) {
+      alert("Erreur.");
     }
   };
 
   const handleRejectUser = async (id: string) => {
     if (!window.confirm("Rejeter ce compte ?")) return;
-    const { error } = await supabase.from('profiles').update({ status: 'rejected' }).eq('id', id);
-    if (!error) {
+    try {
+      // Mock update
+      await new Promise(r => setTimeout(r, 500));
       setPendingUsers(prev => prev.filter(u => u.id !== id));
-    }
+    } catch (e) { }
   };
 
   const handlePromoteUser = async (id: string) => {
     if (!window.confirm("Promouvoir cet utilisateur Administrateur ?")) return;
-    const { error } = await supabase.from('profiles').update({ role: 'admin' }).eq('id', id);
-    if (!error) {
-      setApprovedUsers(prev => prev.map(u => u.id === id ? { ...u, role: 'admin' } : u));
-      alert("Promotion réussie !");
-    } else {
-      alert("Erreur: " + error.message);
-    }
+    // Mock update
+    setApprovedUsers(prev => prev.map(u => u.id === id ? { ...u, role: 'admin' } : u));
+    alert("Promotion réussie (Simulation) !");
   };
 
   const handleDemoteUser = async (id: string) => {
     if (!window.confirm("Rétrograder cet utilisateur en Résident ?")) return;
-    const { error } = await supabase.from('profiles').update({ role: 'resident' }).eq('id', id);
-    if (!error) {
-      setApprovedUsers(prev => prev.map(u => u.id === id ? { ...u, role: 'resident' } : u));
-      alert("Rétrogradation réussie !");
-    } else {
-      alert("Erreur: " + error.message);
-    }
+    // Mock update
+    setApprovedUsers(prev => prev.map(u => u.id === id ? { ...u, role: 'resident' } : u));
+    alert("Rétrogradation réussie (Simulation) !");
   };
 
   const deleteContribution = async (id: string) => {
     if (!window.confirm("Annuler ce versement définitivement ?")) return;
-    const { error } = await supabase.from('contributions').delete().eq('id', id);
-    if (!error) {
-      setAllContributions(prev => prev.filter(c => c.id !== id));
-      alert("Versement annulé.");
-    } else {
-      alert("Erreur: " + error.message);
-    }
+    // Mock delete
+    setAllContributions(prev => prev.filter(c => c.id !== id));
+    alert("Versement annulé (Simulation).");
   };
 
   const handleAttendanceAction = async (id: string, status: 'confirmed' | 'rejected') => {
-    if (status === 'confirmed') {
-      const { error } = await supabase.from('attendance').update({ status: 'confirmed' }).eq('id', id);
-      if (error) alert(error.message);
-    } else {
-      const { error } = await supabase.from('attendance').delete().eq('id', id);
-      if (error) alert(error.message);
-    }
+    // Mock update
     fetchPendingAttendance();
   };
 
   const handleSendBroadcast = async () => {
     if (!broadcastMsg.trim()) return;
-
-    const { error } = await supabase.from('messages').insert({
-      content: broadcastMsg,
-      type: 'alert',
-      priority: 'urgent',
-      author: 'Admin',
-      subject: 'Flash Info Global'
-    });
-
-    if (!error) {
-      alert(`Message diffusé à tous les résidents.`);
-      setBroadcastMsg('');
-    } else {
-      alert("Erreur lors de l'envoi.");
-    }
+    // Mock insert
+    alert(`Message diffusé à tous les résidents (Simulation).`);
+    setBroadcastMsg('');
   };
 
   const systemStatus = [

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LeisureEvent, LeisureFund } from '../types';
-import { supabase } from '../services/supabase';
+// import { supabase } from '../services/supabase';
 
 type EventType = 'voyage' | 'pique-nique' | 'fete';
 type ViewTab = 'explorer' | 'gestion';
@@ -51,10 +51,11 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
    const fetchData = async () => {
       try {
          setLoading(true);
-         const { data: eventsData } = await supabase.from('leisure_events').select('*').order('created_at', { ascending: false });
-         const { data: fundsData } = await supabase.from('leisure_funds').select('*');
-         const { data: contribData } = await supabase.from('leisure_contributions').select('*').order('contribution_date', { ascending: false }).limit(50);
-         const { data: participantsData } = await supabase.from('leisure_participants').select('*, profiles(first_name, last_name)');
+         // MOCKED DATA
+         const eventsData: any[] = [];
+         const fundsData: any[] = [];
+         const contribData: any[] = [];
+         const participantsData: any[] = [];
 
          const mappedParticipants = (participantsData || []).map((p: any) => ({
             id: p.id,
@@ -80,8 +81,8 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
          setContributions(contribData || []);
 
          if (isAdmin) {
-            const { data: profData } = await supabase.from('profiles').select('id, first_name, last_name').eq('status', 'approved');
-            setProfiles(profData || []);
+            // Mock profiles
+            setProfiles([{ id: '1', first_name: 'John', last_name: 'Doe' }]);
          }
       } catch (error) {
          console.error(error);
@@ -92,13 +93,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
    useEffect(() => {
       fetchData();
-      const channel = supabase.channel('leisure_realtime')
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'leisure_events' }, fetchData)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'leisure_funds' }, fetchData)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'leisure_contributions' }, fetchData)
-         .on('postgres_changes', { event: '*', schema: 'public', table: 'leisure_participants' }, fetchData)
-         .subscribe();
-      return () => { supabase.removeChannel(channel); };
+      // Realtime subscription removed
    }, []);
 
    const handleRegister = async (eventId: string) => {
@@ -111,41 +106,32 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
          return;
       }
 
-      const { error } = await supabase.from('leisure_participants').insert([{
-         event_id: eventId,
-         profile_id: user.id,
-         status: 'pending'
-      }]);
-
-      if (error) {
-         alert("Erreur lors de l'inscription : " + error.message);
-      } else {
-         alert("Demande envoyée ! En attente de validation par l'administrateur.");
+      try {
+         // Mock insert
+         await new Promise(r => setTimeout(r, 500));
+         alert("Demande envoyée ! En attente de validation par l'administrateur (Simulation).");
          fetchData();
+      } catch (error: any) {
+         alert("Erreur lors de l'inscription : " + error.message);
       }
    };
 
    const updateParticipantStatus = async (participantId: string, eventId: string, newStatus: 'approved' | 'rejected') => {
-      const { error } = await supabase
-         .from('leisure_participants')
-         .update({ status: newStatus })
-         .eq('id', participantId);
+      try {
+         // Mock update
+         await new Promise(r => setTimeout(r, 500));
 
-      if (error) {
-         alert("Erreur : " + error.message);
-         return;
-      }
-
-      if (newStatus === 'approved') {
-         const event = events.find(e => e.id === eventId);
-         if (event) {
-            await supabase.from('leisure_events').update({
-               registered_participants: event.registeredParticipants + 1
-            }).eq('id', eventId);
+         if (newStatus === 'approved') {
+            const event = events.find(e => e.id === eventId);
+            if (event) {
+               // Mock update event registrants count
+            }
          }
-      }
 
-      fetchData();
+         fetchData();
+      } catch (error: any) {
+         alert("Erreur : " + error.message);
+      }
    };
 
    const handleCreateEvent = async (e: React.FormEvent) => {
@@ -154,48 +140,19 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
          let finalImageUrl = newEvent.imageUrl || 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000';
 
          if (eventImage) {
-            const fileExt = eventImage.name.split('.').pop();
-            const fileName = `${Math.random()}.${fileExt}`;
-            const filePath = `events/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-               .from('education') // Utilisation du bucket existant pour simplifier, ou à modifier si un bucket 'leisure' est créé
-               .upload(filePath, eventImage);
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-               .from('education')
-               .getPublicUrl(filePath);
-
-            finalImageUrl = publicUrl;
+            // Mock upload
+            finalImageUrl = 'https://via.placeholder.com/800x600';
          }
 
-         const { data: eventData, error: eventError } = await supabase.from('leisure_events').insert([{
-            title: newEvent.title, type: newEvent.type, event_date: newEvent.date, location: newEvent.location || 'À définir',
-            description: newEvent.description, cost_per_person: parseInt(newEvent.costPerPerson) || 0,
-            max_participants: parseInt(newEvent.maxParticipants) || null, registered_participants: 0, status: 'open',
-            image_url: finalImageUrl
-         }]).select();
-
-         if (eventError) throw eventError;
-
-         const createdEvent = eventData?.[0];
-         if (createdEvent && (parseInt(newEvent.costPerPerson) > 0)) {
-            // Create a linked fund automatically
-            await supabase.from('leisure_funds').insert([{
-               title: `Caisse: ${createdEvent.title}`,
-               target_amount: (parseInt(newEvent.costPerPerson) || 0) * (parseInt(newEvent.maxParticipants) || 10),
-               current_amount: 0,
-               type: createdEvent.type,
-               event_id: createdEvent.id
-            }]);
-         }
+         // Mock insert event
+         await new Promise(r => setTimeout(r, 1000));
+         // Mock insert fund
 
          setIsAddEventOpen(false);
          setNewEvent({ title: '', type: 'voyage', date: '', location: '', description: '', costPerPerson: '', maxParticipants: '', imageUrl: '' });
          setEventImage(null);
          fetchData();
+         alert("Événement créé (Simulation)");
       } catch (error: any) {
          alert("Erreur lors de la création : " + error.message);
       }
@@ -203,25 +160,26 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
    const deleteEvent = async (id: string) => {
       if (window.confirm("Supprimer cette activité ?")) {
-         const { error } = await supabase.from('leisure_events').delete().eq('id', id);
-         if (error) alert("Erreur : " + error.message);
+         // Mock delete
+         alert("Supprimé (Simulation)");
       }
    };
 
    const deleteFund = async (id: string, title: string) => {
       if (window.confirm(`Supprimer la caisse "${title}" ?`)) {
-         const { error } = await supabase.from('leisure_funds').delete().eq('id', id);
-         if (error) alert("Erreur : " + error.message);
+         // Mock delete
+         alert("Supprimé (Simulation)");
       }
    };
 
    const handleContribution = async () => {
       if (!selectedFund || !contributionAmount) return;
       const val = parseInt(contributionAmount);
-      await supabase.from('leisure_contributions').insert([{ fund_id: selectedFund.id, resident_name: user.name, amount: val }]);
-      await supabase.from('leisure_funds').update({ current_amount: Number(selectedFund.currentAmount) + val }).eq('id', selectedFund.id);
+      // Mock insert contribution
+      // Mock update fund
       setIsFundOpen(false);
       setContributionAmount('');
+      alert("Contribution ajoutée (Simulation)");
    };
 
    const addManualContribution = async () => {
@@ -232,37 +190,17 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
          return;
       }
 
-      const profile = profiles.find(p => p.id === manualContribution.profileId);
-      const name = profile ? `${profile.first_name} ${profile.last_name}` : 'Inconnu';
-      const val = parseInt(manualContribution.amount);
-
-      const { error } = await supabase.from('leisure_contributions').insert([{
-         fund_id: fund.id,
-         resident_name: name,
-         amount: val
-      }]);
-
-      if (!error) {
-         await supabase.from('leisure_funds').update({ current_amount: Number(fund.currentAmount) + val }).eq('id', fund.id);
-         setManualContribution({ profileId: '', amount: '' });
-         fetchData();
-         alert("Cotisation ajoutée !");
-      } else {
-         alert("Erreur: " + error.message);
-      }
+      // Mock insert contribution
+      // Mock update fund
+      setManualContribution({ profileId: '', amount: '' });
+      fetchData();
+      alert("Cotisation ajoutée (Simulation) !");
    };
 
    const deleteContribution = async (contribId: string, fundId: string, amount: number) => {
       if (!window.confirm("Annuler ce versement ?")) return;
-      const fund = funds.find(f => f.id === fundId);
-      const { error } = await supabase.from('leisure_contributions').delete().eq('id', contribId);
-      if (error) {
-         alert("Erreur : " + error.message);
-         return;
-      }
-      if (fund) {
-         await supabase.from('leisure_funds').update({ current_amount: Math.max(0, Number(fund.currentAmount) - amount) }).eq('id', fundId);
-      }
+      // Mock delete
+      alert("Versement annulé (Simulation)");
    };
 
    if (loading) return <div className="flex h-full items-center justify-center"><div className="animate-spin size-10 border-4 border-primary border-t-transparent rounded-full" /></div>;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Site, Resident } from '../types';
-import { supabase } from '../services/supabase';
+// import { supabase } from '../services/supabase';
 
 interface InternshipSitesProps {
   user: { id: string, name: string, role: 'admin' | 'resident' };
@@ -26,27 +26,20 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
   const [newResident, setNewResident] = useState({ firstName: '', lastName: '', email: '' });
 
   // Fetch data
+  // Fetch data
   const fetchData = async () => {
     try {
       setLoading(true);
-      // 1. Fetch sites
-      const { data: sitesData, error: sitesError } = await supabase
-        .from('sites')
-        .select('*');
-
-      if (sitesError) throw sitesError;
-
-      // 2. Fetch profiles to map to sites (residents)
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
-
-      if (profilesError) throw profilesError;
+      // MOCKED DATA
+      const sitesData: any[] = [
+        { id: '1', name: 'CHU Campus', type: 'CHU', supervisor: 'Pr. Agbeko', location: 'Lomé', phone: '22222222', email: 'test@test.com' }
+      ];
+      const profilesData: any[] = []; // No residents for now
 
       // 3. Map residents to sites
       const mappedSites: Site[] = (sitesData || []).map(site => {
         const siteResidents = (profilesData || [])
-          .filter(p => p.hospital === site.name) // Matching by name as per current schema logic
+          .filter(p => p.hospital === site.name)
           .map(p => ({
             id: p.id,
             firstName: p.first_name || '',
@@ -69,16 +62,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
 
   useEffect(() => {
     fetchData();
-
-    const channel = supabase
-      .channel('sites-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sites' }, fetchData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchData)
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    // Realtime subscription removed
   }, []);
 
   // Filtrer les sites si un ID est présent dans l'URL
@@ -92,24 +76,13 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
     }
 
     try {
-      const { error } = await supabase.from('sites').insert([
-        {
-          name: newSite.name,
-          type: newSite.type,
-          supervisor: newSite.supervisor,
-          equipment: ['Scanner', 'Échographie'],
-          location: newSite.location,
-          phone: newSite.phone,
-          email: newSite.email,
-          status: 'available'
-        }
-      ]);
-
-      if (error) throw error;
+      // Mock insert
+      await new Promise(r => setTimeout(r, 500));
 
       fetchData(); // Refresh
       setIsAddSiteModalOpen(false);
       setNewSite({ name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
+      alert('Site créé (Simulation)');
     } catch (error) {
       console.error('Error adding site:', error);
       alert('Erreur lors de la création du site');
@@ -147,27 +120,17 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
 
     alert("Note: Dans cette version intégrée, le résident doit d'abord créer son compte via la page d'inscription. Une fois inscrit, il apparaîtra dans la liste globale et pourra être affecté.");
 
-    // Alternative: We can update the currently logged in user just to show it works? No that's bad.
-    // Real solution: Update `profiles` set `hospital` = site.name WHERE ...
-    // Since we only have "First Name / Last Name" in the form...
-    // Let's try to find a match.
-
     try {
       // Try to finding by last name
-      const { data: foundProfiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .ilike('last_name', newResident.lastName);
+      // MOCKED
+      const foundProfiles: any[] = [];
 
       if (foundProfiles && foundProfiles.length > 0) {
         const profileToUpdate = foundProfiles[0];
         const activeSite = sites.find(s => s.id === activeSiteId);
         if (!activeSite) return;
 
-        await supabase
-          .from('profiles')
-          .update({ hospital: activeSite.name })
-          .eq('id', profileToUpdate.id);
+        // Mock update
 
         fetchData();
         setIsAddResidentModalOpen(false);
@@ -185,16 +148,10 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
     if (!isAdmin) return;
     if (window.confirm("Voulez-vous retirer ce résident de ce site ?")) {
       try {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ hospital: null })
-          .eq('id', residentId);
-
-        if (error) {
-          alert("Erreur lors du retrait du résident : " + error.message);
-        } else {
-          fetchData();
-        }
+        // Mock update
+        await new Promise(r => setTimeout(r, 500));
+        fetchData();
+        alert("Résident retiré (Simulation)");
       } catch (e) {
         console.error(e);
       }
@@ -205,12 +162,10 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
     if (!isAdmin) return;
     if (window.confirm("Supprimer définitivement ce centre hospitalier de la liste ?")) {
       try {
-        const { error } = await supabase.from('sites').delete().eq('id', siteId);
-        if (error) {
-          alert("Erreur lors de la suppression : " + error.message);
-        } else {
-          fetchData();
-        }
+        // Mock delete
+        await new Promise(r => setTimeout(r, 500));
+        fetchData();
+        alert("Site supprimé (Simulation)");
       } catch (e) {
         console.error(e);
       }

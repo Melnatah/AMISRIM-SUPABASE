@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { supabase } from '../services/supabase';
+import { auth } from '../services/api';
 
 interface LoginProps {
   onLogin: (name: string) => void;
@@ -50,18 +50,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignup }) => {
     if (username.trim() && password.trim()) {
       setIsLoading(true);
       setError('');
+      try {
+        const user = await auth.login(username, password);
+        // Construire le nom d'affichage
+        const displayName = user.profile
+          ? `${user.profile.firstName} ${user.profile.lastName}`.trim()
+          : user.email.split('@')[0];
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: username,
-        password: password,
-      });
-
-      if (signInError) {
-        setError(signInError.message);
+        onLogin(displayName);
+        // Recharger pour que App.tsx détecte la session
+        window.location.reload();
+      } catch (err: any) {
+        console.error('Login error:', err);
+        setError(err.message || 'Échec de la connexion');
         setIsLoading(false);
-      } else {
-        // App.tsx auth listener will handle the rest
-        // onLogin(username); // Optional, maybe not needed if parent relies on session state only
       }
     } else {
       setError(t.error);

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { supabase } from '../services/supabase';
+// import { supabase } from '../services/supabase';
 import { Message } from '../types';
-
+import { dashboard, attendance, messages } from '../services/api';
 const chartData = [
   { name: 'Lun', activity: 30 },
   { name: 'Mar', activity: 50 },
@@ -40,46 +40,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const fetchData = async () => {
     try {
-      // Fetch User Count
-      const { count: uCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-      setUserCount(uCount || 0);
+      const stats = await dashboard.getStats();
+      setUserCount(stats.userCount);
+      setModuleCount(stats.moduleCount);
+      setFileCount(stats.fileCount);
+      setSiteCount(stats.siteCount);
 
-      // Fetch Module Count
-      const { count: mCount } = await supabase.from('modules').select('*', { count: 'exact', head: true });
-      setModuleCount(mCount || 0);
+      const msgs = await messages.getAll();
+      setMessages(msgs.slice(0, 5)); // Recent 5
 
-      // Fetch File Count
-      const { count: fCount } = await supabase.from('files').select('*', { count: 'exact', head: true });
-      setFileCount(fCount || 0);
-
-      // Fetch Site Count
-      const { count: sCount } = await supabase.from('sites').select('*', { count: 'exact', head: true });
-      setSiteCount(sCount || 0);
-
-      // Fetch Messages
-      const { data: msgs, error: msgError } = await supabase
-        .from('messages')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (!msgError && msgs) {
-        setMessages(msgs.map(m => ({
-          id: m.id,
-          content: m.content,
-          author: m.sender || m.author || 'Conseil National',
-          createdAt: m.created_at,
-          type: m.type
-        })));
-      }
-
-      // Fetch Attendance
       if (isAdmin) {
-        const { data: att } = await supabase.from('attendance').select('*, profiles(first_name, last_name)').eq('status', 'pending');
-        setPendingAttendance(att || []);
+        try {
+          const pending = await attendance.getPending();
+          setPendingAttendance(pending);
+        } catch (e) { console.warn("Admin attendance fetch failed", e); }
       } else {
-        const { data: myAtt } = await supabase.from('attendance').select('*').eq('profile_id', user.id).order('created_at', { ascending: false }).limit(10);
-        setMyAttendance(myAtt || []);
+        try {
+          const mine = await attendance.getMyAttendance();
+          setMyAttendance(mine);
+        } catch (e) { console.warn("My attendance fetch failed", e); }
       }
 
     } catch (e) {
@@ -91,50 +70,34 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   useEffect(() => {
     fetchData();
-
-    const channel = supabase.channel('dashboard-attendance')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, (payload) => {
-        console.log("Realtime update received:", payload);
-        fetchData();
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    // Realtime subscription removed
   }, [user.id, isAdmin]);
 
   const handleDeclarePresence = async (type: string) => {
     const today = new Date().toISOString().split('T')[0];
-    const alreadyDeclared = myAttendance.some(a => a.item_type === type && a.created_at.startsWith(today));
+    const alreadyDeclared = myAttendance.some(a => a.itemType === type && a.createdAt.startsWith(today));
 
     if (alreadyDeclared) {
       alert("Vous avez déjà émargé pour cette catégorie aujourd'hui.");
       return;
     }
 
-    const { error } = await supabase.from('attendance').insert([{
-      profile_id: user.id,
-      item_type: type,
-      status: 'pending'
-    }]);
-
-    if (error) alert(error.message);
-    else alert("Émargement envoyé pour confirmation !");
+    try {
+      await attendance.declare(type);
+      alert("Émargement envoyé pour confirmation !");
+      fetchData();
+    } catch (e) {
+      alert("Erreur lors de l'émargement");
+    }
   };
 
   const updateAttendanceStatus = async (id: string, status: 'confirmed' | 'rejected') => {
-    if (status === 'confirmed') {
-      const { error } = await supabase.from('attendance').update({ status: 'confirmed' }).eq('id', id);
-      if (error) {
-        alert("Erreur lors de la validation: " + error.message);
-      }
-    } else {
-      const { error } = await supabase.from('attendance').delete().eq('id', id);
-      if (error) {
-        alert("Erreur lors du rejet: " + error.message);
-      }
+    try {
+      await attendance.validate(id, status);
+      fetchData();
+    } catch (e: any) {
+      alert("Erreur: " + e.message);
     }
-    // Refresh immediately for the current admin
-    fetchData();
   };
 
   return (
@@ -179,7 +142,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {['staff', 'epu', 'diu', 'stage'].map(type => {
-                const status = myAttendance.find(a => a.item_type === type && a.created_at.startsWith(new Date().toISOString().split('T')[0]))?.status;
+                const status = myAttendance.find(a => a.itemType === type && a.createdAt.startsWith(new Date().toISOString().split('T')[0]))?.status;
                 return (
                   <button
                     key={type}
@@ -212,8 +175,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 {pendingAttendance.length > 0 ? pendingAttendance.map(att => (
                   <div key={att.id} className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between group">
                     <div>
-                      <p className="text-white text-[10px] font-black uppercase">{att.profiles.first_name} {att.profiles.last_name}</p>
-                      <p className="text-primary text-[8px] font-black uppercase">{att.item_type}</p>
+                      <p className="text-white text-[10px] font-black uppercase">{att.profile?.firstName} {att.profile?.lastName}</p>
+                      <p className="text-primary text-[8px] font-black uppercase">{att.itemType}</p>
                     </div>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => updateAttendanceStatus(att.id, 'confirmed')} className="size-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">done</span></button>
