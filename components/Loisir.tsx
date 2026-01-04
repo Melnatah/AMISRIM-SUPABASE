@@ -104,10 +104,13 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
          const finalImageUrl = newEvent.imageUrl || 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000';
 
          await leisure.createEvent({
-            ...newEvent,
-            imageUrl: finalImageUrl,
-            costPerPerson: Number(newEvent.costPerPerson),
-            maxParticipants: Number(newEvent.maxParticipants)
+            title: newEvent.title,
+            description: newEvent.description,
+            type: newEvent.type,
+            eventDate: newEvent.date ? new Date(newEvent.date).toISOString() : undefined,
+            location: newEvent.location,
+            costPerPerson: newEvent.costPerPerson ? Number(newEvent.costPerPerson) : undefined,
+            maxParticipants: newEvent.maxParticipants ? Number(newEvent.maxParticipants) : undefined
          });
 
          setIsAddEventOpen(false);

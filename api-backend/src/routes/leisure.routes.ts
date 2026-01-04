@@ -58,7 +58,18 @@ router.get('/events', authenticate, async (req: AuthRequest, res: Response, next
             },
             orderBy: { createdAt: 'desc' },
         });
-        res.json(events);
+
+        // Convert Decimal to number for JSON serialization
+        const eventsWithNumbers = events.map(e => ({
+            ...e,
+            costPerPerson: e.costPerPerson ? Number(e.costPerPerson) : null,
+            contributions: e.contributions.map(c => ({
+                ...c,
+                amount: Number(c.amount)
+            }))
+        }));
+
+        res.json(eventsWithNumbers);
     } catch (error) {
         next(error);
     }

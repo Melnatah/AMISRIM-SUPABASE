@@ -34,7 +34,13 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
             orderBy: { createdAt: 'desc' },
         });
 
-        res.json(contributions);
+        // Convert Decimal to number for JSON serialization
+        const contributionsWithNumberAmount = contributions.map(c => ({
+            ...c,
+            amount: Number(c.amount)
+        }));
+
+        res.json(contributionsWithNumberAmount);
     } catch (error) {
         next(error);
     }
@@ -50,7 +56,11 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
                 paymentDate: data.paymentDate ? new Date(data.paymentDate) : new Date(), // Default to now if paid
             }
         });
-        res.status(201).json(contribution);
+
+        res.status(201).json({
+            ...contribution,
+            amount: Number(contribution.amount)
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ error: 'Validation error', details: error.errors });

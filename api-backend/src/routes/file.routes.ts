@@ -42,7 +42,13 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
             orderBy: { createdAt: 'desc' },
         });
 
-        res.json(files);
+        // Convert BigInt to number for JSON serialization
+        const filesWithNumberSize = files.map(f => ({
+            ...f,
+            size: f.size ? Number(f.size) : null
+        }));
+
+        res.json(filesWithNumberSize);
     } catch (error) {
         next(error);
     }
@@ -64,7 +70,10 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
             },
         });
 
-        res.status(201).json(file);
+        res.status(201).json({
+            ...file,
+            size: file.size ? Number(file.size) : null
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ error: 'Validation error', details: error.errors });
