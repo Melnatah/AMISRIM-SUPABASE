@@ -130,7 +130,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
          fetchData();
       } catch (e) {
          console.error(e);
-         alert("Erreur lors de l'opération.");
+         alert("Erreur lors de l'opération: " + (e instanceof Error ? e.message : String(e)));
       } finally {
          setIsUploading(false);
       }
