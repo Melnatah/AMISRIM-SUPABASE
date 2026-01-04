@@ -30,6 +30,13 @@ const AdminSettings: React.FC = () => {
   const [allContributions, setAllContributions] = useState<any[]>([]);
   const [pendingAttendance, setPendingAttendance] = useState<any[]>([]);
 
+  // Approval modal state
+  const [approvalModal, setApprovalModal] = useState<{ isOpen: boolean; user: PendingUser | null; selectedRole: 'resident' | 'admin' }>({
+    isOpen: false,
+    user: null,
+    selectedRole: 'resident'
+  });
+
   const fetchSettings = async () => {
     // Mock settings for now
     setPacsUrl("https://demo.pacs.com");
@@ -115,13 +122,24 @@ const AdminSettings: React.FC = () => {
     alert("Paramètres financiers mis à jour !");
   };
 
-  const handleApproveUser = async (id: string) => {
+  const openApprovalModal = (user: PendingUser) => {
+    setApprovalModal({ isOpen: true, user, selectedRole: 'resident' });
+  };
+
+  const handleApproveUser = async () => {
+    if (!approvalModal.user) return;
     try {
-      await profiles.updateStatus(id, 'approved');
+      // First update status to approved
+      await profiles.updateStatus(approvalModal.user.id, 'approved');
+      // Then update role if admin was selected
+      if (approvalModal.selectedRole === 'admin') {
+        await profiles.updateRole(approvalModal.user.id, 'admin');
+      }
       // Refresh both lists
       fetchPendingUsers();
       fetchApprovedUsers();
-      alert("Utilisateur approuvé avec succès !");
+      setApprovalModal({ isOpen: false, user: null, selectedRole: 'resident' });
+      alert(`Utilisateur approuvé en tant que ${approvalModal.selectedRole === 'admin' ? 'Administrateur' : 'Résident'} !`);
     } catch (e) {
       console.error(e);
       alert("Erreur lors de l'approbation.");
@@ -196,6 +214,63 @@ const AdminSettings: React.FC = () => {
 
   return (
     <div className="flex-1 h-full overflow-y-auto bg-background-light dark:bg-background-dark p-4 md:p-10 font-jakarta">
+      {/* Approval Modal */}
+      {approvalModal.isOpen && approvalModal.user && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-surface-dark border border-surface-highlight rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+            <div className="text-center mb-8">
+              <div className="size-16 rounded-2xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center mx-auto mb-4">
+                <span className="material-symbols-outlined text-3xl">person_add</span>
+              </div>
+              <h3 className="text-xl font-black text-white uppercase mb-2">Approuver l'inscription</h3>
+              <p className="text-slate-400 text-sm">{approvalModal.user.name}</p>
+              <p className="text-slate-500 text-xs">{approvalModal.user.email}</p>
+            </div>
+
+            <div className="mb-8">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 text-center">Attribuer le rôle</p>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setApprovalModal(prev => ({ ...prev, selectedRole: 'resident' }))}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${approvalModal.selectedRole === 'resident'
+                      ? 'bg-primary/20 border-primary text-primary'
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                    }`}
+                >
+                  <span className="material-symbols-outlined text-2xl">school</span>
+                  <span className="text-[10px] font-black uppercase">Résident</span>
+                </button>
+                <button
+                  onClick={() => setApprovalModal(prev => ({ ...prev, selectedRole: 'admin' }))}
+                  className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${approvalModal.selectedRole === 'admin'
+                      ? 'bg-amber-500/20 border-amber-500 text-amber-500'
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                    }`}
+                >
+                  <span className="material-symbols-outlined text-2xl">admin_panel_settings</span>
+                  <span className="text-[10px] font-black uppercase">Administrateur</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setApprovalModal({ isOpen: false, user: null, selectedRole: 'resident' })}
+                className="flex-1 py-4 border border-white/10 text-slate-400 rounded-2xl font-black uppercase text-[10px] hover:bg-white/5 transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleApproveUser}
+                className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
+              >
+                Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-[1200px] mx-auto space-y-10">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -239,7 +314,7 @@ const AdminSettings: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex gap-3">
-                        <button onClick={() => handleApproveUser(user.id)} className="flex-1 md:flex-none px-6 py-3 bg-emerald-500 text-white text-[10px] font-black rounded-xl uppercase shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all">Approuver</button>
+                        <button onClick={() => openApprovalModal(user)} className="flex-1 md:flex-none px-6 py-3 bg-emerald-500 text-white text-[10px] font-black rounded-xl uppercase shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all">Approuver</button>
                         <button onClick={() => handleRejectUser(user.id)} className="flex-1 md:flex-none px-6 py-3 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-white transition-all">Rejeter</button>
                       </div>
                     </div>
