@@ -95,8 +95,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       await attendance.declare(type);
       alert("Émargement envoyé pour confirmation !");
       fetchData();
-    } catch (e) {
-      alert("Erreur lors de l'émargement");
+    } catch (e: any) {
+      console.error(e);
+      // Try to parse the error message if it's a JSON string in the error
+      let errMsg = "Erreur lors de l'émargement";
+      if (e.message) errMsg = e.message;
+      alert(`Erreur: ${errMsg}`);
     }
   };
 
