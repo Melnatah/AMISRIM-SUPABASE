@@ -27,10 +27,10 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
             where,
             include: {
                 module: {
-                    select: { title: true },
+                    select: { name: true },
                 },
                 subject: {
-                    select: { title: true },
+                    select: { name: true },
                 },
                 uploader: {
                     select: {
