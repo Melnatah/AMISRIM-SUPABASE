@@ -48,10 +48,14 @@ const Education: React.FC<EducationProps> = ({ user }) => {
    const fetchData = async () => {
       try {
          setLoading(true);
+         console.log('Fetching education data...');
          const [subjData, modData] = await Promise.all([
             education.getSubjects(),
             education.getModules()
          ]);
+         console.log('API Response - Subjects:', subjData);
+         console.log('API Response - Modules:', modData);
+
          setSubjects(subjData);
          setModules(modData);
       } catch (e) {
@@ -324,7 +328,12 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                      ))}
                   </div>
                   <div className="flex justify-between items-center">
-                     <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">Matières de l'année {activeYear}</h3>
+                     <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                        Matières de l'année {activeYear}
+                        <button onClick={fetchData} className="p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-primary transition-all" title="Actualiser">
+                           <span className="material-symbols-outlined text-sm">refresh</span>
+                        </button>
+                     </h3>
                      {isAdmin && <button onClick={() => { setAddType('subject'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Ajouter Matière</button>}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
