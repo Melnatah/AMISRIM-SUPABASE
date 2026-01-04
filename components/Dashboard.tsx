@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 // import { supabase } from '../services/supabase';
 import { Message } from '../types';
-import { dashboard, attendance, messages } from '../services/api';
+import { dashboard, attendance, messages, profiles } from '../services/api';
 const chartData = [
   { name: 'Lun', activity: 30 },
   { name: 'Mar', activity: 50 },
@@ -28,6 +28,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [myAttendance, setMyAttendance] = useState<any[]>([]);
   const [attendanceStats, setAttendanceStats] = useState({ pending: 0, confirmed: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<any>(null);
   const isAdmin = user.role === 'admin';
 
   const modules = [
@@ -45,7 +46,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setUserCount(stats.userCount);
       setModuleCount(stats.moduleCount);
       setFileCount(stats.fileCount);
+      setFileCount(stats.fileCount);
       setSiteCount(stats.siteCount);
+
+      try {
+        const me = await profiles.getMe();
+        setProfile(me);
+      } catch (e) { console.warn("Failed to fetch profile", e); }
 
       const msgs = await messages.getAll();
       setMessages(msgs.slice(0, 5)); // Recent 5
@@ -126,7 +133,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 {user.name.charAt(0)}
               </div>
               <div>
-                <h2 className="text-white text-xl md:text-3xl font-black leading-tight tracking-tight">Bienvenue Dr {user.name}</h2>
+                <h2 className="text-white text-xl md:text-3xl font-black leading-tight tracking-tight">Bienvenue Dr {profile?.lastName ? profile.lastName : user.name}</h2>
                 <p className="text-slate-500 text-xs md:text-sm font-medium">Portail National des Résidents en Radiologie</p>
               </div>
             </div>
