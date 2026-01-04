@@ -26,6 +26,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [pendingAttendance, setPendingAttendance] = useState<any[]>([]);
   const [myAttendance, setMyAttendance] = useState<any[]>([]);
+  const [attendanceStats, setAttendanceStats] = useState({ pending: 0, confirmed: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const isAdmin = user.role === 'admin';
 
@@ -53,11 +54,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         try {
           const pending = await attendance.getPending();
           setPendingAttendance(pending);
+          // Get all attendance for stats
+          const all = await attendance.getAll();
+          const stats = {
+            pending: all.filter((a: any) => a.status === 'pending').length,
+            confirmed: all.filter((a: any) => a.status === 'confirmed').length,
+            rejected: all.filter((a: any) => a.status === 'rejected').length,
+          };
+          setAttendanceStats(stats);
         } catch (e) { console.warn("Admin attendance fetch failed", e); }
       } else {
         try {
           const mine = await attendance.getMyAttendance();
           setMyAttendance(mine);
+          // Calculate personal stats
+          const stats = {
+            pending: mine.filter((a: any) => a.status === 'pending').length,
+            confirmed: mine.filter((a: any) => a.status === 'confirmed').length,
+            rejected: mine.filter((a: any) => a.status === 'rejected').length,
+          };
+          setAttendanceStats(stats);
         } catch (e) { console.warn("My attendance fetch failed", e); }
       }
 
@@ -117,10 +133,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <p className="text-slate-500 text-xs md:text-sm font-medium">Portail National des Résidents en Radiologie</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center min-w-[100px]">
+            <div className="flex gap-2 flex-wrap">
+              <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center min-w-[80px]">
                 <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Connectés</p>
                 <p className="text-sm md:text-base font-black text-green-400">{userCount}</p>
+              </div>
+              <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl text-center min-w-[80px]">
+                <p className="text-[8px] font-black text-amber-500 uppercase mb-1">En attente</p>
+                <p className="text-sm md:text-base font-black text-amber-500">{attendanceStats.pending}</p>
+              </div>
+              <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl text-center min-w-[80px]">
+                <p className="text-[8px] font-black text-emerald-500 uppercase mb-1">Validés</p>
+                <p className="text-sm md:text-base font-black text-emerald-500">{attendanceStats.confirmed}</p>
+              </div>
+              <div className="bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-xl text-center min-w-[80px]">
+                <p className="text-[8px] font-black text-red-500 uppercase mb-1">Rejetés</p>
+                <p className="text-sm md:text-base font-black text-red-500">{attendanceStats.rejected}</p>
               </div>
             </div>
           </div>
