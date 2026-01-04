@@ -49,12 +49,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setFileCount(stats.fileCount);
       setSiteCount(stats.siteCount);
 
-      try {
-        const me = await profiles.getMe();
-        setProfile(me);
-      } catch (e) { console.warn("Failed to fetch profile", e); }
-
-      const msgs = await messages.getAll();
+      // Fetch profile with retry logic (3 attempts)
+      const fetchProfile = async (retries = 3) => {
+        try {
+          const me = await profiles.getMe();
+          setProfile(me);
+        } catch (e) {
+          if (retries > 0) {
+            console.log(`Profile fetch failed, retrying... (${retries} left)`);
+            setTimeout(() => fetchProfile(retries - 1), 1000);
+          } else {
+            console.warn("Failed to fetch profile after retries", e);
+          }
+        }
+      };
+      fetchProfile(); const msgs = await messages.getAll();
       setMessages(msgs.slice(0, 5)); // Recent 5
 
       if (isAdmin) {
