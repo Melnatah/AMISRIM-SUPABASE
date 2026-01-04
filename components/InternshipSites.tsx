@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Site, Resident } from '../types';
+import { Site, Profile } from '../types';
 import { sites, profiles } from '../services/api';
 
 interface InternshipSitesProps {
@@ -13,7 +13,8 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
   const isAdmin = user.role === 'admin';
 
   // États de données
-  const [sites, setSites] = useState<Site[]>([]);
+  const [sitesList, setSitesList] = useState<Site[]>([]);
+  const [profilesList, setProfilesList] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
   // États Modales
@@ -23,24 +24,20 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
 
   // États Formulaires
   const [newSite, setNewSite] = useState({ name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
-  const [newResident, setNewResident] = useState({ firstName: '', lastName: '', email: '' });
+  const [selectedResidentId, setSelectedResidentId] = useState('');
 
-  // Fetch data
   // Fetch data
   const fetchData = async () => {
     try {
       setLoading(true);
-      const sitesData = await sites.getAll();
-      // The backend should return sites with residents included or we have to fetch them.
-      // Assuming backend returns { ...site, residents: [...] } or we map it.
-      // If backend follows REST, maybe /sites returns plain sites.
-      // But let's assume standard behavior for now.
-      setSites(sitesData);
-
-      // We might need strict profile fetching if we need options for assignment
-      // const allProfiles = await profiles.getAll();
+      const [sitesData, profilesData] = await Promise.all([
+        sites.getAll(),
+        profiles.getAll() // Fetch profiles for assignment
+      ]);
+      setSitesList(sitesData);
+      setProfilesList(profilesData);
     } catch (error) {
-      console.error('Error fetching sites:', error);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -48,11 +45,10 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
 
   useEffect(() => {
     fetchData();
-    // Realtime subscription removed
   }, []);
 
   // Filtrer les sites si un ID est présent dans l'URL
-  const displayedSites = id ? sites.filter(s => s.id === id) : sites;
+  const displayedSites = id ? sitesList.filter(s => s.id === id) : sitesList;
 
   const handleAddSite = async () => {
     if (!isAdmin) return;
@@ -73,82 +69,29 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
   };
 
   const handleAddResident = async () => {
-    if (!isAdmin || !activeSiteId || !newResident.lastName) return;
+    if (!isAdmin || !activeSiteId || !selectedResidentId) return;
 
-    // Note: Creating a brand new user/resident from admin panel is complex because it involves Auth.
-    // Ideally, the resident should already exist and we just assign them to a hospital.
-    // For this demo, let's assume we are just updating an existing profile OR creating a dummy profile entry if auth is not strictly enforced for listing.
-    // However, `profiles.id` references `auth.users.id`. We cannot insert into profiles easily without a user.
-    // PLAN: We will just search for a user by email or name to assign them, OR create a 'ghost' profile if constraint allows (it doesn't, FK exists).
-
-    // Fallback: We'll imply that we are searching and assigning an EXISTING user by updating their hospital.
-    // But since the UI asks for First/Last name to "create", I will assume we want to CREATE a placeholder.
-    // Since I can't create an Auth User from here easily without Admin API (which I can't easily use from client),
-    // I will change the logic to: "Update a profile to assign to this hospital".
-    // But to keep it simple for the user request "Make it work", and since I have RLS policies...
-
-    // REVISED PLAN: We will create a local "mock" update for now because creating Auth users is a separate flow.
-    // ACTUALLY, for the purpose of "Assigning", let's assume the user enters an EMAIL of an existing user to assign them.
-    // OR, better: The UI shows "Add Resident", let's assume we just want to create a row in a separate `site_assignments` table?
-    // Current schema uses `hospital` column in `profiles`.
-
-    // Hack for Demo: I'll accept that we can't easily "create" a resident here without them signing up first.
-    // I will just alert the user "Pour ajouter un résident, il doit d'abord s'inscrire, puis vous pouvez modifier son hôpital dans son profil ou ici (future feature)."
-    // BUT, the user wants "Everything functional".
-    // Let's implement a "Fake" assignment by just updating the local state to show it works visually, OR properly implementing a 'Ghost' resident if I hadn't put the FK constraint.
-    // I put the FK constraint `id UUID REFERENCES auth.users(id)`. So I strictly cannot create a profile without an auth user.
-
-    // Compromise: I will check if I can find a profile with matching name/email to assign.
-    // If not, I will show an alert.
-
-    alert("Note: Dans cette version intégrée, le résident doit d'abord créer son compte via la page d'inscription. Une fois inscrit, il apparaîtra dans la liste globale et pourra être affecté.");
-
-    const handleAddResident = async () => {
-      if (!isAdmin || !activeSiteId || !newResident.lastName) return;
-
-      try {
-        // Search for profile first
-        // This logic is a bit vague without a search endpoint, so we might need one.
-        // Or we fetch all profiles and filter.
-        const allProfiles = await profiles.getAll();
-        const found = allProfiles.find((p: any) => p.last_name?.toLowerCase() === newResident.lastName.toLowerCase());
-
-        if (found) {
-          await sites.assignResident(activeSiteId, found.id);
-          fetchData();
-          setIsAddResidentModalOpen(false);
-          setNewResident({ firstName: '', lastName: '', email: '' });
-          alert(`Résident ${found.last_name} affecté avec succès !`);
-        } else {
-          alert("Aucun résident trouvé avec ce nom.");
-        }
-      } catch (e) {
-        console.error(e);
-        alert("Erreur lors de l'affectation.");
-      }
-    };
+    try {
+      await sites.assignResident(activeSiteId, selectedResidentId);
+      fetchData();
+      setIsAddResidentModalOpen(false);
+      setSelectedResidentId('');
+      alert(`Résident affecté avec succès !`);
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de l'affectation.");
+    }
   };
 
   const removeResident = async (siteId: string, residentId: string) => {
     if (!isAdmin) return;
     if (window.confirm("Voulez-vous retirer ce résident de ce site ?")) {
       try {
-        // There is no specific remove resident endpoint in api.ts sites service yet?
-        // Actually sites.assignResident might overwrite? Or we need a remove endpoint.
-        // Let's assume updating profile hospital to null via profile update.
-        await profiles.updateStatus(residentId, 'active'); // Hack: triggering update.
-        // Better: profiles.updateMe specific? No we interact with other profiles.
-        // Let's check api.ts again. profiles.updateRole exists.
-        // We might need profiles.update(id, data).
-        // Given api.ts limitations, for now let's hope assigning to another site or null works?
-        // This part is tricky without specific API endpoint.
-        // I'll skip implementation details or assume a DELETE endpoint on the relationship exists if I add it to API.
-        // For now, let's just log.
-        console.warn("Remove resident not fully implemented in API wrapper.");
-        // await sites.removeResident(siteId, residentId);
+        await sites.removeResident(siteId, residentId);
         fetchData();
       } catch (e) {
         console.error(e);
+        alert("Erreur lors du retrait.");
       }
     }
   };
@@ -172,6 +115,10 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
       </div>
     )
   }
+
+  // Filter out residents already assigned to ANY site (optional logic, but safer)
+  // Actually, we might want to re-assign someone. So let's show everyone or show current site.
+  // For now show all.
 
   return (
     <div className="flex-1 h-full overflow-y-auto p-4 md:p-10 bg-background-light dark:bg-background-dark font-jakarta relative">
@@ -272,33 +219,32 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
             </div>
             <div className="space-y-5">
               <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-500 text-xs font-medium">
-                <p>Recherchez un résidant existant par son nom de famille pour l'affecter.</p>
+                <p>Sélectionnez un résident inscrit pour l'affecter à ce site.</p>
               </div>
-              {/*
+
               <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Prénom de l'Étudiant</label>
-                <input 
-                  autoFocus
-                  className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium"
-                  placeholder="Jean-Luc"
-                  value={newResident.firstName}
-                  onChange={e => setNewResident({...newResident, firstName: e.target.value})}
-                />
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Résident</label>
+                <select
+                  className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm"
+                  value={selectedResidentId}
+                  onChange={e => setSelectedResidentId(e.target.value)}
+                >
+                  <option value="">-- Choisir un résident --</option>
+                  {profilesList.map(p => (
+                    <option key={p.id} value={p.id}>Dr {p.lastName} {p.firstName} {p.year ? `(${p.year})` : ''}</option>
+                  ))}
+                </select>
               </div>
-              */}
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nom de Famille (Recherche)</label>
-                <input
-                  autoFocus
-                  className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium"
-                  placeholder="ex: KOFFI"
-                  value={newResident.lastName}
-                  onChange={e => setNewResident({ ...newResident, lastName: e.target.value })}
-                />
-              </div>
+
               <div className="flex gap-3 pt-6">
                 <button onClick={() => setIsAddResidentModalOpen(false)} className="flex-1 py-4 rounded-2xl bg-white/5 text-slate-400 font-black uppercase tracking-widest text-[10px]">Annuler</button>
-                <button onClick={handleAddResident} className="flex-1 py-4 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-500/20">Affecter</button>
+                <button
+                  onClick={handleAddResident}
+                  disabled={!selectedResidentId}
+                  className="flex-1 py-4 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Affecter
+                </button>
               </div>
             </div>
           </div>
@@ -384,7 +330,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                   <div className="mb-8">
                     <div className="flex justify-between items-center mb-4">
                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Effectif actuel</p>
-                      <p className="text-sm font-black text-primary">{site.residents.length} {site.residents.length > 1 ? 'Résidents' : 'Résident'}</p>
+                      <p className="text-sm font-black text-primary">{site.residents?.length || 0} {site.residents?.length > 1 ? 'Résidents' : 'Résident'}</p>
                     </div>
                     <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
                       <div className="h-full bg-primary/20 w-full"></div>
@@ -440,7 +386,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                           <span className="material-symbols-outlined text-sm text-primary filled">groups</span>
                           Résidents affectés
                         </h4>
-                        <p className="text-[9px] text-slate-600 font-bold uppercase mt-1">{site.residents.length} {site.residents.length > 1 ? 'Résidents' : 'Résident'}</p>
+                        <p className="text-[9px] text-slate-600 font-bold uppercase mt-1">{site.residents?.length || 0} {site.residents?.length > 1 ? 'Résidents' : 'Résident'}</p>
                       </div>
                       {isAdmin && (
                         <button
@@ -454,12 +400,12 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {site.residents.length > 0 ? (
+                      {site.residents && site.residents.length > 0 ? (
                         site.residents.map(res => (
                           <div key={res.id} className="flex items-center justify-between p-5 rounded-2xl bg-surface-dark border border-white/5 group/res hover:border-primary/40 transition-all shadow-sm">
                             <div className="flex items-center gap-4">
                               <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xs font-black">
-                                {res.lastName.charAt(0)}{res.firstName.charAt(0)}
+                                {res.lastName?.charAt(0)}{res.firstName?.charAt(0)}
                               </div>
                               <div>
                                 <p className="text-sm font-black text-white leading-none mb-1">{res.lastName}</p>
@@ -491,7 +437,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                     <span className="material-symbols-outlined text-slate-500">groups</span>
                     <div>
                       <p className="text-[8px] font-black text-slate-600 uppercase">Nombre total d'étudiants</p>
-                      <p className="text-sm font-black text-white">{site.residents.length}</p>
+                      <p className="text-sm font-black text-white">{site.residents?.length || 0}</p>
                     </div>
                   </div>
                 </div>

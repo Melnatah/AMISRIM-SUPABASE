@@ -90,6 +90,7 @@ export const sites = {
     delete: (id: string) => fetchAPI(`/sites/${id}`, { method: 'DELETE' }),
     // Additional helpful method to assign resident
     assignResident: (siteId: string, residentId: string) => fetchAPI(`/sites/${siteId}/residents`, { method: 'POST', body: JSON.stringify({ residentId }) }),
+    removeResident: (siteId: string, residentId: string) => fetchAPI(`/sites/${siteId}/residents/${residentId}`, { method: 'DELETE' }),
 };
 
 export const education = {

@@ -32,11 +32,13 @@ model Profile {
   year       String?
   hospital   String?
   phone      String?
+  siteId     String?  @map("site_id")
   status     String   @default("approved")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
   
   user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site                  Site?                   @relation(fields: [siteId], references: [id])
   contributions         Contribution[]
   files                 File[]
   leisureEvents         LeisureEvent[]
@@ -46,6 +48,7 @@ model Profile {
   
   @@index([email])
   @@index([role])
+  @@index([siteId])
   @@map("profiles")
 }
 
@@ -59,8 +62,9 @@ model Site {
   city       String?
   latitude   Decimal?
   longitude  Decimal?
-  residents  String[]
   createdAt  DateTime @default(now()) @map("created_at")
+  
+  residents  Profile[]
   
   @@map("sites")
 }
