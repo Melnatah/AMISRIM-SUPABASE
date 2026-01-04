@@ -143,13 +143,15 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
             <h2 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Caisse Commune</h2>
             <p className="text-slate-500 text-xs md:text-sm">Suivi des cotisations AMIS-RIM.</p>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="w-full md:w-auto flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-8 py-4 text-xs font-black text-white shadow-xl shadow-indigo-500/20"
-          >
-            <span className="material-symbols-outlined">add_card</span>
-            NOUVELLE ENTRÉE
-          </button>
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="w-full md:w-auto flex items-center justify-center gap-2 rounded-2xl bg-indigo-500 px-8 py-4 text-xs font-black text-white shadow-xl shadow-indigo-500/20"
+            >
+              <span className="material-symbols-outlined">add_card</span>
+              NOUVELLE ENTRÉE
+            </button>
+          )}
         </div>
 
         {/* Dashboards Financiers - Optimized for mobile stacking */}

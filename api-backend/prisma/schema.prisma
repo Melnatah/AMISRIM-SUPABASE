@@ -115,17 +115,20 @@ model File {
 }
 
 model Contribution {
-  id            String    @id @default(uuid())
-  profileId     String    @map("profile_id")
-  amount        Decimal
-  month         String?
-  year          String?
-  status        String    @default("pending")
-  paymentMethod String?   @map("payment_method")
-  paymentDate   DateTime? @map("payment_date")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id              String    @id @default(uuid())
+  profileId       String?   @map("profile_id")
+  contributorName String?   @map("contributor_name")
+  contributorType String?   @map("contributor_type")
+  reason          String?
+  amount          Decimal
+  month           String?
+  year            String?
+  status          String    @default("pending")
+  paymentMethod   String?   @map("payment_method")
+  paymentDate     DateTime? @map("payment_date")
+  createdAt       DateTime  @default(now()) @map("created_at")
   
-  profile       Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile         Profile?  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   
   @@index([profileId])
   @@map("contributions")

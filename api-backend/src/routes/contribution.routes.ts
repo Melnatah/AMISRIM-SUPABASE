@@ -7,36 +7,27 @@ import { AppError } from '../middleware/errorHandler.js';
 const router = Router();
 
 const contributionSchema = z.object({
-    profileId: z.string().uuid(),
+    profileId: z.string().uuid().optional(),
+    contributorName: z.string().optional(),
+    contributorType: z.string().optional(),
+    reason: z.string().optional(),
     amount: z.number().positive(),
     month: z.string().optional(),
     year: z.string().optional(),
-    status: z.enum(['pending', 'paid', 'overdue']).default('pending'),
+    status: z.enum(['pending', 'paid', 'overdue']).default('paid'), // Default to paid as manual entry usually means cash received
     paymentMethod: z.string().optional(),
     paymentDate: z.string().datetime().optional(),
 });
 
-// GET /api/contributions
+// GET /api/contributions - Everyone sees everything (Transparency for Caisse Commune)
 router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
-        if (!req.user) {
-            throw new AppError('User not authenticated', 401);
-        }
-
-        // If not admin, only show own contributions
-        const where = req.user.role === 'admin'
-            ? {}
-            : { profileId: req.user.id };
-
         const contributions = await prisma.contribution.findMany({
-            where,
             include: {
                 profile: {
                     select: {
-                        id: true,
                         firstName: true,
                         lastName: true,
-                        email: true,
                     },
                 },
             },
@@ -49,47 +40,17 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
     }
 });
 
-// POST /api/contributions (admin only)
+// POST /api/contributions (admin only to ensure verified entries)
 router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Response, next) => {
     try {
         const data = contributionSchema.parse(req.body);
         const contribution = await prisma.contribution.create({
             data: {
                 ...data,
-                paymentDate: data.paymentDate ? new Date(data.paymentDate) : null,
-            },
-            include: {
-                profile: {
-                    select: {
-                        firstName: true,
-                        lastName: true,
-                    },
-                },
-            },
+                paymentDate: data.paymentDate ? new Date(data.paymentDate) : new Date(), // Default to now if paid
+            }
         });
         res.status(201).json(contribution);
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            res.status(400).json({ error: 'Validation error', details: error.errors });
-            return;
-        }
-        next(error);
-    }
-});
-
-// PUT /api/contributions/:id (admin only)
-router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response, next) => {
-    try {
-        const { id } = req.params;
-        const data = contributionSchema.partial().parse(req.body);
-        const contribution = await prisma.contribution.update({
-            where: { id },
-            data: {
-                ...data,
-                paymentDate: data.paymentDate ? new Date(data.paymentDate) : undefined,
-            },
-        });
-        res.json(contribution);
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ error: 'Validation error', details: error.errors });
