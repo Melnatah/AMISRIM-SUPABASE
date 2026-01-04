@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Contribution } from '../types';
-import { contributions } from '../services/api';
+import { Contribution, Profile } from '../types';
+import { contributions, profiles } from '../services/api';
 
 interface CotisationProps {
   user: { id: string, name: string, role: 'admin' | 'resident' };
@@ -10,8 +10,10 @@ interface CotisationProps {
 const Cotisation: React.FC<CotisationProps> = ({ user }) => {
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [usersList, setUsersList] = useState<Profile[]>([]);
   const [formData, setFormData] = useState({
     contributorName: '',
+    profileId: '',
     contributorType: 'Resident' as 'Resident' | 'Partenaire',
     amount: '',
     month: 'Février',
@@ -40,7 +42,8 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
 
   useEffect(() => {
     fetchContributions();
-    // Realtime subscription removed
+    // Load users for the dropdown
+    profiles.getAll().then(setUsersList).catch(console.error);
   }, []);
 
   const totalFund = contributions.reduce((acc, curr) => acc + curr.amount, 0);
@@ -57,6 +60,7 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
     try {
       await contributions.create({
         contributorName: formData.contributorName,
+        profileId: formData.profileId || undefined,
         contributorType: formData.contributorType,
         amount: Number(formData.amount),
         month: formData.month,
@@ -65,7 +69,8 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
 
       fetchContributions();
       setIsModalOpen(false);
-      setFormData({ contributorName: '', contributorType: 'Resident', amount: '', month: 'Février', reason: 'Mensualité' });
+      setIsModalOpen(false);
+      setFormData({ contributorName: '', profileId: '', contributorType: 'Resident', amount: '', month: 'Février', reason: 'Mensualité' });
     } catch (e) {
       console.error("Error adding contribution", e);
       alert("Erreur lors de l'ajout");
@@ -118,10 +123,32 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
             </h3>
             <form onSubmit={handleAddContribution} className="space-y-4">
               <div className="grid grid-cols-2 gap-1 p-1 bg-background-dark/50 rounded-xl border border-white/5">
-                <button type="button" onClick={() => setFormData({ ...formData, contributorType: 'Resident' })} className={`py-2 text-[9px] font-black uppercase rounded-lg transition-all ${formData.contributorType === 'Resident' ? 'bg-primary text-white shadow-lg' : 'text-slate-500'}`}>Résident</button>
-                <button type="button" onClick={() => setFormData({ ...formData, contributorType: 'Partenaire' })} className={`py-2 text-[9px] font-black uppercase rounded-lg transition-all ${formData.contributorType === 'Partenaire' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-500'}`}>Partenaire</button>
+                <button type="button" onClick={() => setFormData({ ...formData, contributorType: 'Resident', contributorName: '', profileId: '' })} className={`py-2 text-[9px] font-black uppercase rounded-lg transition-all ${formData.contributorType === 'Resident' ? 'bg-primary text-white shadow-lg' : 'text-slate-500'}`}>Résident</button>
+                <button type="button" onClick={() => setFormData({ ...formData, contributorType: 'Partenaire', profileId: '' })} className={`py-2 text-[9px] font-black uppercase rounded-lg transition-all ${formData.contributorType === 'Partenaire' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-500'}`}>Partenaire</button>
               </div>
-              <input required className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm" placeholder="Nom..." value={formData.contributorName} onChange={e => setFormData({ ...formData, contributorName: e.target.value })} />
+
+              {formData.contributorType === 'Resident' ? (
+                <select
+                  required
+                  className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm"
+                  value={formData.profileId}
+                  onChange={e => {
+                    const selectedUser = usersList.find(u => u.id === e.target.value);
+                    setFormData({
+                      ...formData,
+                      profileId: e.target.value,
+                      contributorName: selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : ''
+                    });
+                  }}
+                >
+                  <option value="">Sélectionner un résident...</option>
+                  {usersList.map(u => (
+                    <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                  ))}
+                </select>
+              ) : (
+                <input required className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm" placeholder="Nom du partenaire..." value={formData.contributorName} onChange={e => setFormData({ ...formData, contributorName: e.target.value })} />
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <input required type="number" className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm" placeholder="Montant..." value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} />
                 <select className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm" value={formData.month} onChange={e => setFormData({ ...formData, month: e.target.value })}>
