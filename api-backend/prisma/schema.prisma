@@ -67,28 +67,30 @@ model Site {
 
 model Module {
   id          String    @id @default(uuid())
-  title       String
+  subjectId   String?   @map("subject_id")
+  name        String    @map("name")
   year        String?
   description String?
+  category    String?
   createdAt   DateTime  @default(now()) @map("created_at")
   
-  subjects    Subject[]
+  subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   files       File[]
   
+  @@index([subjectId])
   @@map("modules")
 }
 
 model Subject {
   id        String   @id @default(uuid())
-  moduleId  String   @map("module_id")
-  title     String
+  name      String   @map("name")
+  year      Int?     
   category  String?
   createdAt DateTime @default(now()) @map("created_at")
   
-  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  files     File[]
+  modules   Module[]
+  files     File[] // Direct files on subject if needed
   
-  @@index([moduleId])
   @@map("subjects")
 }
 

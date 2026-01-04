@@ -113,17 +113,24 @@ export const education = {
     uploadFile: async (file: File, context: { moduleId?: string, subjectId?: string }) => {
         const formData = new FormData();
         formData.append('file', file);
-        if (context.moduleId) formData.append('moduleId', context.moduleId);
-        if (context.subjectId) formData.append('subjectId', context.subjectId);
 
-        // This likely goes to /storage/upload which returns a URL, then we create the file record
-        // OR /files endpoint handles multipart. Let's assume /files does it or we use two steps.
-        // Based on backend implementation typically we might upload first.
-        // Let's assume a direct file upload endpoint exists in file.routes or storage.routes
-        return fetchAPI('/files/upload', {
+        // 1. Upload to storage
+        const uploadRes = await fetchAPI('/storage/upload', {
             method: 'POST',
-            body: formData as any, // fetch handles FormData content-type automatically
-            // Do NOT set Content-Type header for FormData
+            body: formData as any,
+        });
+
+        // 2. Create DB record
+        return fetchAPI('/files', {
+            method: 'POST',
+            body: JSON.stringify({
+                name: file.name,
+                url: uploadRes.url,
+                size: file.size,
+                type: file.type,
+                moduleId: context.moduleId,
+                subjectId: context.subjectId
+            })
         });
     },
     getFiles: () => fetchAPI('/files'),

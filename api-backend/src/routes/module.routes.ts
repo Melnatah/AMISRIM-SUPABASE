@@ -6,18 +6,26 @@ import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.js';
 const router = Router();
 
 const moduleSchema = z.object({
-    title: z.string().min(1),
+    subjectId: z.string().uuid().optional(),
+    name: z.string().min(1), // Renamed from title
     year: z.string().optional(),
     description: z.string().optional(),
+    category: z.string().optional(),
 });
 
 // GET /api/modules
 router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
+        const { subjectId, category } = req.query;
+
+        const where: any = {};
+        if (subjectId) where.subjectId = subjectId as string;
+        if (category) where.category = category as string;
+
         const modules = await prisma.module.findMany({
+            where,
             include: {
-                subjects: true,
-                files: true,
+                files: true, // Only files, not subjects anymore
             },
             orderBy: { createdAt: 'desc' },
         });

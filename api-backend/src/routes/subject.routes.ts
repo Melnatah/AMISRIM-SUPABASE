@@ -5,19 +5,28 @@ import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
+// Updated schema matching new DB structure
 const subjectSchema = z.object({
-    moduleId: z.string().uuid(),
-    title: z.string().min(1),
+    name: z.string().min(1),
+    year: z.coerce.number().optional(), // coerce handles strings like "1"
     category: z.string().optional(),
 });
 
 // GET /api/subjects
 router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
     try {
-        const { moduleId } = req.query;
+        const { year, category } = req.query;
+
+        const where: any = {};
+        if (year) where.year = parseInt(year as string);
+        if (category) where.category = category as string;
+
         const subjects = await prisma.subject.findMany({
-            where: moduleId ? { moduleId: moduleId as string } : undefined,
-            include: { files: true },
+            where,
+            include: {
+                modules: true,
+                files: true
+            },
             orderBy: { createdAt: 'desc' },
         });
         res.json(subjects);
