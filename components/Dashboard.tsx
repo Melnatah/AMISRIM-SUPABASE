@@ -180,8 +180,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           {/* Personal Attendance Stats Panel - Shown to everyone */}
           <div className="bg-surface-dark rounded-[2.5rem] border border-primary/30 p-8 shadow-xl animate-in fade-in slide-in-from-right-4">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-white text-sm font-black uppercase tracking-widest">Mon Statut</h3>
-              <span className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center material-symbols-outlined text-sm">person_check</span>
+              <h3 className="text-white text-sm font-black uppercase tracking-widest">Mon Statut ({myAttendance.length})</h3>
+              <span className="cursor-pointer size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center material-symbols-outlined text-sm hover:bg-primary hover:text-white transition-colors" onClick={() => fetchData()}>refresh</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">

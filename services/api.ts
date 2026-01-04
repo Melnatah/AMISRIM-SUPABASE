@@ -76,7 +76,7 @@ export const auth = {
 
 export const profiles = {
     getMe: () => fetchAPI('/profiles/me'),
-    updateMe: (data: Partial<Profile>) => fetchAPI('/profiles/me', { method: 'PATCH', body: JSON.stringify(data) }),
+    updateMe: (data: Partial<Profile>) => fetchAPI('/profiles/me', { method: 'PUT', body: JSON.stringify(data) }),
     getAll: (role?: string) => fetchAPI(`/profiles${role ? `?role=${role}` : ''}`),
     getById: (id: string) => fetchAPI(`/profiles/${id}`),
     updateStatus: (id: string, status: string) => fetchAPI(`/profiles/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }),
