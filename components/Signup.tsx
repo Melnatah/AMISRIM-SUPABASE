@@ -19,6 +19,7 @@ const Signup: React.FC<SignupProps> = ({ onBackToLogin }) => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,18 +27,16 @@ const Signup: React.FC<SignupProps> = ({ onBackToLogin }) => {
     setError('');
 
     try {
-      await auth.register(
-        formData.email,
-        formData.password,
-        {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          year: formData.year,
-          hospital: formData.hospital,
-          phone: formData.phone,
-          role: 'resident',
-        }
-      );
+      await auth.register({
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        year: formData.year,
+        hospital: formData.hospital,
+        phone: formData.phone,
+        role: 'resident',
+      });
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message || "Erreur lors de l'inscription");
@@ -118,15 +117,26 @@ const Signup: React.FC<SignupProps> = ({ onBackToLogin }) => {
             </div>
             <div className="md:col-span-2 space-y-2">
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Mot de passe</label>
-              <input
-                required
-                type="password"
-                className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white focus:ring-2 focus:ring-primary/50 outline-none text-sm font-medium"
-                value={formData.password}
-                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                minLength={6}
-                placeholder="Minimum 6 caractères"
-              />
+              <div className="relative">
+                <input
+                  required
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 pr-12 text-white focus:ring-2 focus:ring-primary/50 outline-none text-sm font-medium"
+                  value={formData.password}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
+                  minLength={6}
+                  placeholder="Minimum 6 caractères"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                >
+                  <span className="material-symbols-outlined text-xl">
+                    {showPassword ? 'visibility_off' : 'visibility'}
+                  </span>
+                </button>
+              </div>
             </div>
             <div className="space-y-2">
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Année de Résidence</label>

@@ -72,7 +72,7 @@ router.post('/signup', async (req: Request, res: Response, next) => {
                     year: data.year,
                     hospital: data.hospital,
                     role: 'resident',
-                    status: 'approved',
+                    status: 'pending', // Changed to 'pending' for approval workflow
                 },
             });
 
@@ -100,6 +100,71 @@ router.post('/signup', async (req: Request, res: Response, next) => {
         next(error);
     }
 });
+
+// Signup handler logic (extracted for reuse)
+const handleSignup = async (req: Request, res: Response, next: any) => {
+    try {
+        const data = signupSchema.parse(req.body);
+
+        // Check if user already exists
+        const existingUser = await prisma.user.findUnique({
+            where: { email: data.email },
+        });
+
+        if (existingUser) {
+            throw new AppError('Un compte existe déjà avec cet email', 400, 'USER_EXISTS');
+        }
+
+        // Hash password
+        const passwordHash = await bcrypt.hash(data.password, 10);
+
+        // Create user and profile in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+                data: {
+                    email: data.email,
+                    passwordHash,
+                },
+            });
+
+            const profile = await tx.profile.create({
+                data: {
+                    userId: user.id,
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    email: data.email,
+                    phone: data.phone,
+                    year: data.year,
+                    hospital: data.hospital,
+                    role: 'resident',
+                    status: 'pending',
+                },
+            });
+
+            return { user, profile };
+        });
+
+        res.status(201).json({
+            message: 'Inscription réussie ! Votre demande est en attente de validation.',
+            user: {
+                id: result.profile.id,
+                email: result.user.email,
+                firstName: result.profile.firstName,
+                lastName: result.profile.lastName,
+                status: result.profile.status,
+            },
+        });
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            res.status(400).json({ error: 'Erreur de validation', details: error.errors });
+            return;
+        }
+        next(error);
+    }
+};
+
+// POST /api/auth/register (main registration endpoint for frontend)
+router.post('/register', handleSignup);
 
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response, next) => {

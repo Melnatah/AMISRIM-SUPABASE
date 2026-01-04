@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { auth } from '../services/api';
 
 interface LoginProps {
@@ -11,10 +11,21 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignup }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    // Check if user previously chose to be remembered
+    return localStorage.getItem('rememberMe') === 'true';
+  });
   const [error, setError] = useState('');
   const [lang, setLang] = useState<'FR' | 'EN'>('FR');
   const [isLoading, setIsLoading] = useState(false);
+
+  // On mount, check if there's a remembered email
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    if (rememberedEmail) {
+      setUsername(rememberedEmail);
+    }
+  }, []);
 
   const t = {
     FR: {
@@ -52,13 +63,32 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateToSignup }) => {
       setError('');
       try {
         const user = await auth.login(username, password);
-        // Construire le nom d'affichage
+
+        // Handle 'Remember Me' functionality
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+          localStorage.setItem('rememberedEmail', username);
+          // Token is already stored in localStorage by auth.login
+        } else {
+          localStorage.removeItem('rememberMe');
+          localStorage.removeItem('rememberedEmail');
+          // Move token to sessionStorage so it expires when browser closes
+          const token = localStorage.getItem('token');
+          const userData = localStorage.getItem('user');
+          if (token) {
+            sessionStorage.setItem('token', token);
+            sessionStorage.setItem('user', userData || '');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
+        }
+
+        // Build display name
         const displayName = user.profile
           ? `${user.profile.firstName} ${user.profile.lastName}`.trim()
           : user.email.split('@')[0];
 
         onLogin(displayName);
-        // Recharger pour que App.tsx détecte la session
         window.location.reload();
       } catch (err: any) {
         console.error('Login error:', err);

@@ -12,7 +12,7 @@ export type AuthResponse = {
 
 // --- Generic Fetch ---
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
     // Auto-detect JSON body
     const isJson = options.body && typeof options.body === 'string' && (options.body as string).startsWith('{');
@@ -63,12 +63,15 @@ export const auth = {
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
     },
     getCurrentUser: () => {
-        const str = localStorage.getItem('user');
+        const str = localStorage.getItem('user') || sessionStorage.getItem('user');
         return str ? JSON.parse(str) : null;
     },
-    isAuthenticated: () => !!localStorage.getItem('token'),
+    isAuthenticated: () => !!(localStorage.getItem('token') || sessionStorage.getItem('token')),
+    getToken: () => localStorage.getItem('token') || sessionStorage.getItem('token'),
 };
 
 export const profiles = {
