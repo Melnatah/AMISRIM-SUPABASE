@@ -74,7 +74,14 @@ const Education: React.FC<EducationProps> = ({ user }) => {
       const years = [1, 2, 3, 4];
       return years.map(y => {
          const yearSubjects = subjects
-            .filter(s => (s.category === 'cours' || !s.category) && s.year === y)
+            .filter(s => {
+               // Filtrer par catégorie ('cours' par défaut)
+               const isCours = s.category === 'cours' || !s.category;
+               // Comparaison souple pour l'année (au cas où ce serait une string "1")
+               // eslint-disable-next-line eqeqeq
+               const isYear = s.year == y;
+               return isCours && isYear;
+            })
             .map(s => ({
                ...s,
                modules: modules.filter(m => m.subjectId === s.id)
@@ -337,50 +344,57 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                      {isAdmin && <button onClick={() => { setAddType('subject'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Ajouter Matière</button>}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     {curriculum.find(y => y.year === activeYear)?.subjects.map(subj => (
-                        <div key={subj.id} className="bg-surface-dark border border-surface-highlight rounded-[2rem] p-6">
-                           <div className="flex justify-between items-start mb-4">
-                              <div className="flex-1">
-                                 <h4 className="text-white font-black text-sm uppercase">{subj.name}</h4>
-                                 <span className="bg-white/5 text-slate-500 text-[8px] font-black px-2 py-1 rounded inline-block mt-1">{subj.modules.length} Modules</span>
+                     {curriculum.find(y => y.year === activeYear)?.subjects.length === 0 ? (
+                        <div className="col-span-full p-8 text-center border border-dashed border-white/10 rounded-2xl bg-white/5">
+                           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Aucune matière pour cette année</p>
+                           {isAdmin && <button onClick={() => { setAddType('subject'); setIsAddModalOpen(true); }} className="mt-4 text-primary text-[10px] font-black uppercase hover:underline">Ajouter une matière</button>}
+                        </div>
+                     ) : (
+                        curriculum.find(y => y.year === activeYear)?.subjects.map(subj => (
+                           <div key={subj.id} className="bg-surface-dark border border-surface-highlight rounded-[2rem] p-6">
+                              <div className="flex justify-between items-start mb-4">
+                                 <div className="flex-1">
+                                    <h4 className="text-white font-black text-sm uppercase">{subj.name}</h4>
+                                    <span className="bg-white/5 text-slate-500 text-[8px] font-black px-2 py-1 rounded inline-block mt-1">{subj.modules.length} Modules</span>
+                                 </div>
+                                 {isAdmin && <button onClick={() => handleDeleteSubject(subj.id, subj.name)} className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>}
                               </div>
-                              {isAdmin && <button onClick={() => handleDeleteSubject(subj.id, subj.name)} className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>}
-                           </div>
-                           <button onClick={() => setSelectedSubjectId(selectedSubjectId === subj.id ? null : subj.id)} className={`w-full py-3 rounded-xl text-[10px] font-black uppercase transition-all ${selectedSubjectId === subj.id ? 'bg-primary text-white' : 'bg-white/5 text-slate-400'}`}>{selectedSubjectId === subj.id ? "Replier" : "Voir les Modules"}</button>
-                           {selectedSubjectId === subj.id && (
-                              <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
-                                 {subj.modules.map(mod => (
-                                    <div key={mod.id} className="p-4 rounded-2xl bg-black/30 border border-white/5">
-                                       <div className="flex justify-between items-center mb-2">
-                                          <p className="text-xs font-black text-primary uppercase">{mod.name}</p>
-                                          <div className="flex items-center gap-2">
-                                             <span className="text-[8px] font-bold text-slate-500">{mod.files.length} fichiers</span>
-                                             {isAdmin && (
-                                                <div className="flex gap-1">
-                                                   <button onClick={() => { setTargetModuleId(mod.id); setAddType('file'); setIsAddModalOpen(true); }} className="text-primary hover:text-white transition-colors" title="Ajouter un fichier"><span className="material-symbols-outlined text-xs">add_circle</span></button>
-                                                   <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="text-red-500 transition-colors"><span className="material-symbols-outlined text-xs">delete</span></button>
+                              <button onClick={() => setSelectedSubjectId(selectedSubjectId === subj.id ? null : subj.id)} className={`w-full py-3 rounded-xl text-[10px] font-black uppercase transition-all ${selectedSubjectId === subj.id ? 'bg-primary text-white' : 'bg-white/5 text-slate-400'}`}>{selectedSubjectId === subj.id ? "Replier" : "Voir les Modules"}</button>
+                              {selectedSubjectId === subj.id && (
+                                 <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
+                                    {subj.modules.map(mod => (
+                                       <div key={mod.id} className="p-4 rounded-2xl bg-black/30 border border-white/5">
+                                          <div className="flex justify-between items-center mb-2">
+                                             <p className="text-xs font-black text-primary uppercase">{mod.name}</p>
+                                             <div className="flex items-center gap-2">
+                                                <span className="text-[8px] font-bold text-slate-500">{mod.files.length} fichiers</span>
+                                                {isAdmin && (
+                                                   <div className="flex gap-1">
+                                                      <button onClick={() => { setTargetModuleId(mod.id); setAddType('file'); setIsAddModalOpen(true); }} className="text-primary hover:text-white transition-colors" title="Ajouter un fichier"><span className="material-symbols-outlined text-xs">add_circle</span></button>
+                                                      <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="text-red-500 transition-colors"><span className="material-symbols-outlined text-xs">delete</span></button>
+                                                   </div>
+                                                )}
+                                             </div>
+                                          </div>
+                                          <div className="space-y-1">
+                                             {mod.files.map(f => (
+                                                <div key={f.id} className="flex items-center justify-between py-2 text-[10px] text-slate-400 border-t border-white/5">
+                                                   <span className="truncate">{f.name}</span>
+                                                   <div className="flex items-center gap-2">
+                                                      <button onClick={() => handleDownload(f.url || '', f.name)} className="material-symbols-outlined text-sm hover:text-white">download</button>
+                                                      {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-sm text-red-500">delete</button>}
+                                                   </div>
                                                 </div>
-                                             )}
+                                             ))}
                                           </div>
                                        </div>
-                                       <div className="space-y-1">
-                                          {mod.files.map(f => (
-                                             <div key={f.id} className="flex items-center justify-between py-2 text-[10px] text-slate-400 border-t border-white/5">
-                                                <span className="truncate">{f.name}</span>
-                                                <div className="flex items-center gap-2">
-                                                   <button onClick={() => handleDownload(f.url || '', f.name)} className="material-symbols-outlined text-sm hover:text-white">download</button>
-                                                   {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-sm text-red-500">delete</button>}
-                                                </div>
-                                             </div>
-                                          ))}
-                                       </div>
-                                    </div>
-                                 ))}
-                                 {isAdmin && <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="w-full py-2 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-600 uppercase hover:text-primary transition-all">+ Ajouter un Module</button>}
-                              </div>
-                           )}
-                        </div>
-                     ))}
+                                    ))}
+                                    {isAdmin && <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="w-full py-2 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-600 uppercase hover:text-primary transition-all">+ Ajouter un Module</button>}
+                                 </div>
+                              )}
+                           </div>
+                        ))
+                     )}
                   </div>
                </div>
             )}
