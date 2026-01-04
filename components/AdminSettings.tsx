@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-// import { supabase } from '../services/supabase';
+import { profiles, contributions } from '../services/api';
 
 type AdminTab = 'users' | 'finance' | 'attendance' | 'broadcast' | 'system';
 
 interface PendingUser {
   id: string;
   name: string;
+  email: string;
   hospital: string;
   year: string;
   date: string;
@@ -30,44 +31,58 @@ const AdminSettings: React.FC = () => {
   const [pendingAttendance, setPendingAttendance] = useState<any[]>([]);
 
   const fetchSettings = async () => {
-    // Mock settings
+    // Mock settings for now
     setPacsUrl("https://demo.pacs.com");
     setMaintenanceMode(false);
     setMonthlyFee('5000');
   };
 
   const fetchPendingUsers = async () => {
-    // Mock pending users
-    const data: any[] = [];
-    setPendingUsers(data.map(u => ({
-      id: u.id,
-      name: `${u.first_name || ''} ${u.last_name || ''}`,
-      hospital: u.hospital || 'N/A',
-      year: u.year ? `${u.year} année` : 'N/A',
-      date: new Date(u.created_at).toLocaleDateString()
-    })));
+    try {
+      const data = await profiles.getAll();
+      const pending = data.filter((u: any) => u.status === 'pending');
+      setPendingUsers(pending.map((u: any) => ({
+        id: u.id,
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Sans nom',
+        email: u.email || '',
+        hospital: u.hospital || 'Non spécifié',
+        year: u.year ? `${u.year}ème année` : 'Non spécifié',
+        date: u.createdAt ? new Date(u.createdAt).toLocaleDateString('fr-FR') : ''
+      })));
+    } catch (e) {
+      console.error('Error fetching pending users:', e);
+    }
   };
 
   const fetchApprovedUsers = async () => {
-    // Mock approved users
-    const data: any[] = [];
-    setApprovedUsers(data.map(u => ({
-      id: u.id,
-      name: `${u.first_name || ''} ${u.last_name || ''}`,
-      hospital: u.hospital || 'N/A',
-      year: u.year ? `${u.year} année` : 'N/A',
-      date: new Date(u.created_at).toLocaleDateString(),
-      role: u.role || 'resident'
-    })));
+    try {
+      const data = await profiles.getAll();
+      const approved = data.filter((u: any) => u.status === 'approved');
+      setApprovedUsers(approved.map((u: any) => ({
+        id: u.id,
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Sans nom',
+        email: u.email || '',
+        hospital: u.hospital || 'Non spécifié',
+        year: u.year ? `${u.year}ème année` : 'Non spécifié',
+        date: u.createdAt ? new Date(u.createdAt).toLocaleDateString('fr-FR') : '',
+        role: u.role || 'resident'
+      })));
+    } catch (e) {
+      console.error('Error fetching approved users:', e);
+    }
   };
 
   const fetchAllContributions = async () => {
-    // Mock contributions
-    setAllContributions([]);
+    try {
+      const data = await contributions.getAll();
+      setAllContributions(data || []);
+    } catch (e) {
+      console.error('Error fetching contributions:', e);
+    }
   };
 
   const fetchPendingAttendance = async () => {
-    // Mock attendance
+    // Mock attendance for now
     setPendingAttendance([]);
   };
 
@@ -77,7 +92,6 @@ const AdminSettings: React.FC = () => {
     fetchApprovedUsers();
     fetchAllContributions();
     fetchPendingAttendance();
-    // Subscription removed
   }, []);
 
   const saveSetting = async (key: string, value: string) => {
@@ -103,43 +117,63 @@ const AdminSettings: React.FC = () => {
 
   const handleApproveUser = async (id: string) => {
     try {
-      // Mock update
-      await new Promise(r => setTimeout(r, 500));
-      setPendingUsers(prev => prev.filter(u => u.id !== id));
-      alert("Utilisateur approuvé avec succès (Simulation).");
+      await profiles.updateStatus(id, 'approved');
+      // Refresh both lists
+      fetchPendingUsers();
+      fetchApprovedUsers();
+      alert("Utilisateur approuvé avec succès !");
     } catch (e) {
-      alert("Erreur.");
+      console.error(e);
+      alert("Erreur lors de l'approbation.");
     }
   };
 
   const handleRejectUser = async (id: string) => {
-    if (!window.confirm("Rejeter ce compte ?")) return;
+    if (!window.confirm("Rejeter ce compte ? Cette action est irréversible.")) return;
     try {
-      // Mock update
-      await new Promise(r => setTimeout(r, 500));
-      setPendingUsers(prev => prev.filter(u => u.id !== id));
-    } catch (e) { }
+      await profiles.updateStatus(id, 'rejected');
+      fetchPendingUsers();
+      fetchApprovedUsers();
+      alert("Utilisateur rejeté.");
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handlePromoteUser = async (id: string) => {
     if (!window.confirm("Promouvoir cet utilisateur Administrateur ?")) return;
-    // Mock update
-    setApprovedUsers(prev => prev.map(u => u.id === id ? { ...u, role: 'admin' } : u));
-    alert("Promotion réussie (Simulation) !");
+    try {
+      await profiles.updateRole(id, 'admin');
+      fetchApprovedUsers();
+      alert("Promotion réussie !");
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de la promotion.");
+    }
   };
 
   const handleDemoteUser = async (id: string) => {
     if (!window.confirm("Rétrograder cet utilisateur en Résident ?")) return;
-    // Mock update
-    setApprovedUsers(prev => prev.map(u => u.id === id ? { ...u, role: 'resident' } : u));
-    alert("Rétrogradation réussie (Simulation) !");
+    try {
+      await profiles.updateRole(id, 'resident');
+      fetchApprovedUsers();
+      alert("Rétrogradation réussie !");
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de la rétrogradation.");
+    }
   };
 
   const deleteContribution = async (id: string) => {
     if (!window.confirm("Annuler ce versement définitivement ?")) return;
-    // Mock delete
-    setAllContributions(prev => prev.filter(c => c.id !== id));
-    alert("Versement annulé (Simulation).");
+    try {
+      await contributions.delete(id);
+      fetchAllContributions();
+      alert("Versement annulé.");
+    } catch (e) {
+      console.error(e);
+      alert("Erreur.");
+    }
   };
 
   const handleAttendanceAction = async (id: string, status: 'confirmed' | 'rejected') => {

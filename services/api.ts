@@ -78,8 +78,10 @@ export const profiles = {
     getMe: () => fetchAPI('/profiles/me'),
     updateMe: (data: Partial<Profile>) => fetchAPI('/profiles/me', { method: 'PATCH', body: JSON.stringify(data) }),
     getAll: (role?: string) => fetchAPI(`/profiles${role ? `?role=${role}` : ''}`),
-    updateStatus: (id: string, status: string) => fetchAPI(`/profiles/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-    updateRole: (id: string, role: string) => fetchAPI(`/profiles/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+    getById: (id: string) => fetchAPI(`/profiles/${id}`),
+    updateStatus: (id: string, status: string) => fetchAPI(`/profiles/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }),
+    updateRole: (id: string, role: string) => fetchAPI(`/profiles/${id}`, { method: 'PUT', body: JSON.stringify({ role }) }),
+    delete: (id: string) => fetchAPI(`/profiles/${id}`, { method: 'DELETE' }),
 };
 
 export const sites = {
