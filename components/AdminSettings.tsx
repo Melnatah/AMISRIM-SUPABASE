@@ -37,6 +37,19 @@ const AdminSettings: React.FC = () => {
     selectedRole: 'resident'
   });
 
+  // Add user modal state
+  const [addUserModal, setAddUserModal] = useState(false);
+  const [newUser, setNewUser] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    year: '1',
+    hospital: '',
+    phone: '',
+    role: 'resident' as 'resident' | 'admin'
+  });
+
   const fetchSettings = async () => {
     // Mock settings for now
     setPacsUrl("https://demo.pacs.com");
@@ -182,6 +195,64 @@ const AdminSettings: React.FC = () => {
     }
   };
 
+  const handleDeleteUser = async (id: string, name: string) => {
+    if (!window.confirm(`Supprimer définitivement l'utilisateur "${name}" ? Cette action est irréversible.`)) return;
+    try {
+      await profiles.delete(id);
+      fetchApprovedUsers();
+      fetchPendingUsers();
+      alert("Utilisateur supprimé avec succès.");
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors de la suppression.");
+    }
+  };
+
+  const handleAddUser = async () => {
+    if (!newUser.firstName || !newUser.lastName || !newUser.email || !newUser.password) {
+      alert("Veuillez remplir tous les champs obligatoires.");
+      return;
+    }
+    try {
+      // Use the register endpoint to create the user
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newUser.email,
+          password: newUser.password,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          year: newUser.year,
+          hospital: newUser.hospital,
+          phone: newUser.phone,
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Erreur');
+      }
+
+      const data = await response.json();
+
+      // Now approve and set role
+      await profiles.updateStatus(data.user.id, 'approved');
+      if (newUser.role === 'admin') {
+        await profiles.updateRole(data.user.id, 'admin');
+      }
+
+      setAddUserModal(false);
+      setNewUser({ firstName: '', lastName: '', email: '', password: '', year: '1', hospital: '', phone: '', role: 'resident' });
+      fetchApprovedUsers();
+      fetchPendingUsers();
+      alert(`Utilisateur "${newUser.firstName} ${newUser.lastName}" créé avec succès !`);
+    } catch (e: any) {
+      console.error(e);
+      alert(`Erreur: ${e.message}`);
+    }
+  };
+
   const deleteContribution = async (id: string) => {
     if (!window.confirm("Annuler ce versement définitivement ?")) return;
     try {
@@ -233,8 +304,8 @@ const AdminSettings: React.FC = () => {
                 <button
                   onClick={() => setApprovalModal(prev => ({ ...prev, selectedRole: 'resident' }))}
                   className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${approvalModal.selectedRole === 'resident'
-                      ? 'bg-primary/20 border-primary text-primary'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                    ? 'bg-primary/20 border-primary text-primary'
+                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
                     }`}
                 >
                   <span className="material-symbols-outlined text-2xl">school</span>
@@ -243,8 +314,8 @@ const AdminSettings: React.FC = () => {
                 <button
                   onClick={() => setApprovalModal(prev => ({ ...prev, selectedRole: 'admin' }))}
                   className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${approvalModal.selectedRole === 'admin'
-                      ? 'bg-amber-500/20 border-amber-500 text-amber-500'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                    ? 'bg-amber-500/20 border-amber-500 text-amber-500'
+                    : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
                     }`}
                 >
                   <span className="material-symbols-outlined text-2xl">admin_panel_settings</span>
@@ -265,6 +336,152 @@ const AdminSettings: React.FC = () => {
                 className="flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all"
               >
                 Confirmer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {addUserModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-surface-dark border border-surface-highlight rounded-[2rem] p-8 w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="text-center mb-8">
+              <div className="size-16 rounded-2xl bg-primary/20 text-primary flex items-center justify-center mx-auto mb-4">
+                <span className="material-symbols-outlined text-3xl">person_add</span>
+              </div>
+              <h3 className="text-xl font-black text-white uppercase mb-2">Ajouter un utilisateur</h3>
+              <p className="text-slate-500 text-xs">Créer un nouveau compte directement</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Prénom *</label>
+                  <input
+                    type="text"
+                    value={newUser.firstName}
+                    onChange={e => setNewUser({ ...newUser, firstName: e.target.value })}
+                    className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                    placeholder="Jean"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Nom *</label>
+                  <input
+                    type="text"
+                    value={newUser.lastName}
+                    onChange={e => setNewUser({ ...newUser, lastName: e.target.value })}
+                    className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                    placeholder="Dupont"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Email *</label>
+                <input
+                  type="email"
+                  value={newUser.email}
+                  onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                  className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                  placeholder="email@exemple.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Mot de passe *</label>
+                <input
+                  type="password"
+                  value={newUser.password}
+                  onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                  className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                  placeholder="Minimum 6 caractères"
+                  minLength={6}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Année</label>
+                  <select
+                    value={newUser.year}
+                    onChange={e => setNewUser({ ...newUser, year: e.target.value })}
+                    className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                  >
+                    <option value="1">1ère Année</option>
+                    <option value="2">2ème Année</option>
+                    <option value="3">3ème Année</option>
+                    <option value="4">4ème Année</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Téléphone</label>
+                  <input
+                    type="tel"
+                    value={newUser.phone}
+                    onChange={e => setNewUser({ ...newUser, phone: e.target.value })}
+                    className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                    placeholder="+228 00 00 00 00"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Hôpital</label>
+                <input
+                  type="text"
+                  value={newUser.hospital}
+                  onChange={e => setNewUser({ ...newUser, hospital: e.target.value })}
+                  className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                  placeholder="CHU Campus"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Rôle</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setNewUser({ ...newUser, role: 'resident' })}
+                    className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${newUser.role === 'resident'
+                        ? 'bg-primary/20 border-primary text-primary'
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                      }`}
+                  >
+                    <span className="material-symbols-outlined text-2xl">school</span>
+                    <span className="text-[10px] font-black uppercase">Résident</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewUser({ ...newUser, role: 'admin' })}
+                    className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${newUser.role === 'admin'
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-500'
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                      }`}
+                  >
+                    <span className="material-symbols-outlined text-2xl">admin_panel_settings</span>
+                    <span className="text-[10px] font-black uppercase">Administrateur</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4 mt-8">
+              <button
+                onClick={() => {
+                  setAddUserModal(false);
+                  setNewUser({ firstName: '', lastName: '', email: '', password: '', year: '1', hospital: '', phone: '', role: 'resident' });
+                }}
+                className="flex-1 py-4 border border-white/10 text-slate-400 rounded-2xl font-black uppercase text-[10px] hover:bg-white/5 transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleAddUser}
+                className="flex-1 py-4 bg-primary text-white rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-primary/20 hover:bg-primary-dark transition-all"
+              >
+                Créer l'utilisateur
               </button>
             </div>
           </div>
@@ -333,9 +550,18 @@ const AdminSettings: React.FC = () => {
                     <span className="material-symbols-outlined text-primary">group</span>
                     Utilisateurs Actifs
                   </h3>
-                  <span className="px-4 py-1.5 rounded-full bg-slate-500/10 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                    {approvedUsers.length} Membre{approvedUsers.length > 1 ? 's' : ''}
-                  </span>
+                  <div className="flex items-center gap-4">
+                    <span className="px-4 py-1.5 rounded-full bg-slate-500/10 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                      {approvedUsers.length} Membre{approvedUsers.length > 1 ? 's' : ''}
+                    </span>
+                    <button
+                      onClick={() => setAddUserModal(true)}
+                      className="px-4 py-2 bg-primary text-white text-[10px] font-black rounded-xl uppercase flex items-center gap-2 hover:bg-primary-dark transition-all"
+                    >
+                      <span className="material-symbols-outlined text-sm">person_add</span>
+                      Ajouter
+                    </button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {approvedUsers.map(user => (
@@ -361,7 +587,7 @@ const AdminSettings: React.FC = () => {
                         ) : (
                           <button onClick={() => handleDemoteUser(user.id)} className="flex-1 py-2 bg-amber-500/10 text-amber-500 text-[10px] font-black rounded-xl uppercase hover:bg-amber-500 hover:text-white transition-all">Rétrograder</button>
                         )}
-                        <button onClick={() => handleRejectUser(user.id)} className="px-4 py-2 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
+                        <button onClick={() => handleDeleteUser(user.id, user.name)} className="px-4 py-2 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
                       </div>
                     </div>
                   ))}
