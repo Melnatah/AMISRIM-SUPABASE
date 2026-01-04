@@ -133,7 +133,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 {user.name.charAt(0)}
               </div>
               <div>
-                <h2 className="text-white text-xl md:text-3xl font-black leading-tight tracking-tight">Bienvenue Dr {profile?.lastName ? profile.lastName : user.name}</h2>
+                <h2 className="text-white text-xl md:text-3xl font-black leading-tight tracking-tight">Bienvenue Dr {profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || user.name : user.name}</h2>
                 <p className="text-slate-500 text-xs md:text-sm font-medium">Portail National des Résidents en Radiologie</p>
               </div>
             </div>
