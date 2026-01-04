@@ -98,45 +98,129 @@ const Education: React.FC<EducationProps> = ({ user }) => {
       await education.uploadFile(file, { moduleId });
    };
 
+
    const handleAdd = async () => {
-      if (!isAdmin) return;
-      if (!newName.trim() && addType !== 'file') return;
-      if (addType === 'file' && !selectedFile) { alert("Sélectionnez un fichier."); return; }
+      if (!isAdmin) {
+         alert("Vous devez être administrateur pour effectuer cette action.");
+         return;
+      }
+
+      // Validation des entrées
+      if (addType !== 'file' && !newName.trim()) {
+         alert("Veuillez entrer un nom.");
+         return;
+      }
+
+      if (addType === 'file' && !selectedFile) {
+         alert("Veuillez sélectionner un fichier.");
+         return;
+      }
 
       try {
          setIsUploading(true);
-         let moduleId = targetModuleId;
+         console.log('=== DÉBUT AJOUT ===');
+         console.log('Type:', addType);
+         console.log('Catégorie:', activeCategory);
+         console.log('Nom:', newName);
 
-         if (activeCategory === 'cours' && addType === 'subject') {
-            await education.createSubject({ name: newName, year: activeYear, category: 'cours' });
-         } else if (activeCategory === 'staff' && addType === 'module') {
-            const mod = await education.createModule({ name: newName, category: 'staff', description: 'Nouveau module' });
-            if (selectedFile) await handleFileUpload(selectedFile, mod.id);
-         } else if ((activeCategory === 'epu' || activeCategory === 'diu') && addType === 'item') {
-            await education.createSubject({ name: newName, category: activeCategory });
-         } else if (addType === 'module') {
-            const parentId = activeCategory === 'cours' ? selectedSubjectId : selectedItemId;
-            if (!parentId) { alert("Aucun parent sélectionné."); return; }
-            const mod = await education.createModule({ name: newName, subjectId: parentId, category: activeCategory });
-            if (selectedFile) await handleFileUpload(selectedFile, mod.id);
-         } else if (addType === 'file' && moduleId) {
-            await handleFileUpload(selectedFile!, moduleId);
+         // AJOUT DE MATIÈRE (SUBJECT)
+         if (addType === 'subject' || addType === 'item') {
+            const subjectData: any = {
+               name: newName.trim(),
+               category: activeCategory
+            };
+
+            // Ajouter l'année seulement pour les cours
+            if (activeCategory === 'cours') {
+               subjectData.year = activeYear;
+            }
+
+            console.log('Données subject à envoyer:', subjectData);
+            const result = await education.createSubject(subjectData);
+            console.log('Subject créé:', result);
+            alert(`Matière "${newName}" ajoutée avec succès !`);
          }
 
+         // AJOUT DE MODULE
+         else if (addType === 'module') {
+            const parentId = activeCategory === 'cours' ? selectedSubjectId : selectedItemId;
+
+            if (!parentId && activeCategory !== 'staff') {
+               alert("Veuillez d'abord sélectionner une matière.");
+               return;
+            }
+
+            const moduleData: any = {
+               name: newName.trim(),
+               category: activeCategory
+            };
+
+            if (parentId) {
+               moduleData.subjectId = parentId;
+            }
+
+            console.log('Données module à envoyer:', moduleData);
+            const result = await education.createModule(moduleData);
+            console.log('Module créé:', result);
+
+            // Si un fichier est sélectionné, l'uploader
+            if (selectedFile) {
+               console.log('Upload du fichier associé...');
+               await handleFileUpload(selectedFile, result.id);
+            }
+
+            alert(`Module "${newName}" ajouté avec succès !`);
+         }
+
+         // AJOUT DE FICHIER
+         else if (addType === 'file') {
+            if (!targetModuleId) {
+               alert("Erreur: Aucun module cible spécifié.");
+               return;
+            }
+
+            console.log('Upload du fichier vers le module:', targetModuleId);
+            await handleFileUpload(selectedFile!, targetModuleId);
+            alert(`Fichier "${selectedFile!.name}" ajouté avec succès !`);
+         }
+
+         // Réinitialiser et rafraîchir
          setIsAddModalOpen(false);
          setNewName('');
          setSelectedFile(null);
          setTargetModuleId(null);
-         fetchData();
+         await fetchData();
+
+         console.log('=== AJOUT RÉUSSI ===');
+
       } catch (error: any) {
-         console.error('Error in handleAdd:', error);
-         const errorMessage = error?.message || error?.error || 'Erreur lors de l\'opération';
-         const errorDetails = error?.details ? JSON.stringify(error.details) : '';
-         alert(`Erreur lors de l'opération: ${errorMessage}\n${errorDetails}`);
+         console.error('=== ERREUR LORS DE L\'AJOUT ===');
+         console.error('Error object:', error);
+         console.error('Error message:', error?.message);
+         console.error('Error details:', error?.details);
+
+         let errorMessage = 'Une erreur est survenue';
+
+         if (error?.details) {
+            // Erreur de validation Zod
+            const details = Array.isArray(error.details) ? error.details : [error.details];
+            errorMessage = 'Erreur de validation:\n' + details.map((d: any) =>
+               `- ${d.path?.join('.') || 'champ'}: ${d.message}`
+            ).join('\n');
+         } else if (error?.message) {
+            errorMessage = error.message;
+         } else if (error?.error) {
+            errorMessage = error.error;
+         } else if (typeof error === 'string') {
+            errorMessage = error;
+         }
+
+         alert(`❌ Erreur lors de l'ajout:\n\n${errorMessage}\n\nConsultez la console pour plus de détails.`);
       } finally {
          setIsUploading(false);
       }
    };
+
 
    const handleDeleteSubject = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
