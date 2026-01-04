@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-// import { supabase } from '../services/supabase';
 import { Message } from '../types';
+import { messages as messagesAPI } from '../services/api';
 
 interface MessagerieProps {
   user: { id: string, name: string, role: 'admin' | 'resident' } | null;
@@ -23,19 +23,19 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
 
   const fetchData = async () => {
     try {
-      // MOCKED DATA
-      const data: any[] = []; // No messages for now
+      const data = await messagesAPI.getAll();
 
       const mappedMessages: Message[] = (data || []).map(m => ({
         id: m.id,
-        sender: m.sender || m.author || 'Anonyme',
-        role: m.role || (m.author === 'Admin' ? 'Bureau National' : 'Résident'),
+        sender: m.sender || 'Anonyme',
+        role: m.role || 'Bureau National',
         subject: m.subject || 'Sujet manquant',
         content: m.content,
-        timestamp: new Date(m.created_at).toLocaleDateString() + ' ' + new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date(m.createdAt).toLocaleDateString() + ' ' + new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         priority: (m.priority as any) || 'info',
         read: false,
-        type: m.type
+        type: m.type,
+        createdAt: m.createdAt
       }));
 
       setMessages(mappedMessages);
@@ -49,7 +49,6 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
 
   useEffect(() => {
     fetchData();
-    // Realtime subscription removed
   }, []);
 
   const filteredMessages = messages.filter(m => {
@@ -76,12 +75,19 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
     if (!newMessage.subject || !newMessage.content || !user) return;
 
     try {
-      // Mock insert
-      await new Promise(r => setTimeout(r, 500));
+      await messagesAPI.send({
+        sender: user.name,
+        role: user.role === 'admin' ? 'Bureau National' : 'Résident',
+        subject: newMessage.subject,
+        content: newMessage.content,
+        priority: newMessage.priority,
+        type: 'broadcast'
+      });
 
       setIsComposeModalOpen(false);
       setNewMessage({ subject: '', priority: 'info', content: '' });
-      alert("Votre message a été diffusé avec succès (Simulation) !");
+      fetchData();
+      alert("Votre message a été diffusé avec succès !");
     } catch (error) {
       console.error('Error sending message:', error);
       alert("Erreur lors de l'envoi du message.");
@@ -92,12 +98,12 @@ const Messagerie: React.FC<MessagerieProps> = ({ user }) => {
     if (!window.confirm("Voulez-vous vraiment supprimer ce message ? Cette action sera appliquée pour tous les utilisateurs.")) return;
 
     try {
-      // Mock delete
+      await messagesAPI.delete(id);
       setMessages(prev => prev.filter(m => m.id !== id));
       if (selectedMessage?.id === id) {
         setSelectedMessage(null);
       }
-      alert("Message supprimé avec succès (Simulation).");
+      alert("Message supprimé avec succès.");
     } catch (error: any) {
       console.error('Error deleting message:', error);
       alert("Erreur lors de la suppression du message : " + (error.message || "Erreur inconnue"));
