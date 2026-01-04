@@ -87,6 +87,7 @@ export const profiles = {
 export const sites = {
     getAll: () => fetchAPI('/sites'),
     create: (data: any) => fetchAPI('/sites', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: any) => fetchAPI(`/sites/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => fetchAPI(`/sites/${id}`, { method: 'DELETE' }),
     // Additional helpful method to assign resident
     assignResident: (siteId: string, residentId: string) => fetchAPI(`/sites/${siteId}/residents`, { method: 'POST', body: JSON.stringify({ residentId }) }),
