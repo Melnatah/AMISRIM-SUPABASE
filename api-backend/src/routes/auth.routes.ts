@@ -9,14 +9,14 @@ const router = Router();
 
 // Validation schemas
 const signupSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(6),
-    firstName: z.string().min(1),
-    lastName: z.string().min(1),
-    phone: z.string().optional(),
-    year: z.string().optional(),
-    hospital: z.string().optional(),
-});
+    email: z.string().email('Email invalide'),
+    password: z.string().min(6, 'Le mot de passe doit contenir au moins 6 caractères'),
+    firstName: z.string().min(1, 'Le prénom est requis'),
+    lastName: z.string().min(1, 'Le nom est requis'),
+    phone: z.string().optional().nullable(),
+    year: z.string().optional().nullable(),
+    hospital: z.string().optional().nullable(),
+}).passthrough(); // Allow additional fields to pass through
 
 const loginSchema = z.object({
     email: z.string().email(),
