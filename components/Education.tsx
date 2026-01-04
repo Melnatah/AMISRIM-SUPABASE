@@ -99,6 +99,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
    };
 
    const handleAdd = async () => {
+      if (!isAdmin) return;
       if (!newName.trim() && addType !== 'file') return;
       if (addType === 'file' && !selectedFile) { alert("Sélectionnez un fichier."); return; }
 
@@ -238,7 +239,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                   </div>
                   <div className="flex justify-between items-center">
                      <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">Matières de l'année {activeYear}</h3>
-                     <button onClick={() => { setAddType('subject'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Ajouter Matière</button>
+                     {isAdmin && <button onClick={() => { setAddType('subject'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Ajouter Matière</button>}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      {curriculum.find(y => y.year === activeYear)?.subjects.map(subj => (
@@ -280,7 +281,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                        </div>
                                     </div>
                                  ))}
-                                 <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="w-full py-2 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-600 uppercase hover:text-primary transition-all">+ Ajouter un Module</button>
+                                 {isAdmin && <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="w-full py-2 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-600 uppercase hover:text-primary transition-all">+ Ajouter un Module</button>}
                               </div>
                            )}
                         </div>
@@ -293,7 +294,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                <div className="space-y-6 animate-in fade-in duration-500">
                   <div className="flex justify-between items-center">
                      <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">Modules de Staff Scientifique</h3>
-                     <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Nouveau Module</button>
+                     {isAdmin && <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Nouveau Module</button>}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                      {staffModules.map(mod => (
@@ -328,7 +329,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                <div className="space-y-6 animate-in fade-in duration-500">
                   <div className="flex justify-between items-center">
                      <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">Liste des Items {activeCategory.toUpperCase()}</h3>
-                     <button onClick={() => { setAddType('item'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Ajouter un Item</button>
+                     {isAdmin && <button onClick={() => { setAddType('item'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Ajouter un Item</button>}
                   </div>
                   <div className="space-y-4">
                      {(activeCategory === 'epu' ? epuItems : diuItems).map(item => (
@@ -367,7 +368,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                        </div>
                                     </div>
                                  ))}
-                                 <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="p-6 border-2 border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-primary/30 transition-all text-slate-600"><span className="material-symbols-outlined">add_circle</span><span className="text-[10px] font-black uppercase">Nouveau Module</span></button>
+                                 {isAdmin && <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="p-6 border-2 border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-primary/30 transition-all text-slate-600"><span className="material-symbols-outlined">add_circle</span><span className="text-[10px] font-black uppercase">Nouveau Module</span></button>}
                               </div>
                            )}
                         </div>
