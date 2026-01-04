@@ -10,7 +10,7 @@ const fileSchema = z.object({
     subjectId: z.string().uuid().optional(),
     name: z.string().min(1),
     type: z.string().optional(),
-    url: z.string().url(),
+    url: z.string().min(1), // Accept relative paths like /uploads/...
     size: z.number().int().positive().optional(),
 });
 
