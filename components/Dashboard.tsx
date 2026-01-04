@@ -133,22 +133,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 <p className="text-slate-500 text-xs md:text-sm font-medium">Portail National des Résidents en Radiologie</p>
               </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center min-w-[80px]">
+            <div className="flex gap-2">
+              <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center min-w-[100px]">
                 <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Connectés</p>
                 <p className="text-sm md:text-base font-black text-green-400">{userCount}</p>
-              </div>
-              <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl text-center min-w-[80px]">
-                <p className="text-[8px] font-black text-amber-500 uppercase mb-1">En attente</p>
-                <p className="text-sm md:text-base font-black text-amber-500">{attendanceStats.pending}</p>
-              </div>
-              <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl text-center min-w-[80px]">
-                <p className="text-[8px] font-black text-emerald-500 uppercase mb-1">Validés</p>
-                <p className="text-sm md:text-base font-black text-emerald-500">{attendanceStats.confirmed}</p>
-              </div>
-              <div className="bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-xl text-center min-w-[80px]">
-                <p className="text-[8px] font-black text-red-500 uppercase mb-1">Rejetés</p>
-                <p className="text-sm md:text-base font-black text-red-500">{attendanceStats.rejected}</p>
               </div>
             </div>
           </div>
@@ -192,8 +180,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
           </div>
 
-          {/* Admin Panel for Attendance */}
-          {isAdmin && (
+          {/* Panel for Attendance - Admin sees pending validations, Users see their stats */}
+          {isAdmin ? (
             <div className="bg-surface-dark rounded-[2.5rem] border border-emerald-500/30 p-8 shadow-xl animate-in fade-in slide-in-from-right-4">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-white text-sm font-black uppercase tracking-widest">Validations ({pendingAttendance.length})</h3>
@@ -217,6 +205,42 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                   </div>
                 )}
               </div>
+            </div>
+          ) : (
+            <div className="bg-surface-dark rounded-[2.5rem] border border-primary/30 p-8 shadow-xl animate-in fade-in slide-in-from-right-4">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-white text-sm font-black uppercase tracking-widest">Mon Statut</h3>
+                <span className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center material-symbols-outlined text-sm">person_check</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
+                  <p className="text-2xl font-black text-amber-500">{attendanceStats.pending}</p>
+                  <p className="text-[8px] font-black text-amber-500 uppercase mt-1">En attente</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                  <p className="text-2xl font-black text-emerald-500">{attendanceStats.confirmed}</p>
+                  <p className="text-[8px] font-black text-emerald-500 uppercase mt-1">Validés</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center">
+                  <p className="text-2xl font-black text-red-500">{attendanceStats.rejected}</p>
+                  <p className="text-[8px] font-black text-red-500 uppercase mt-1">Rejetés</p>
+                </div>
+              </div>
+              {myAttendance.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  <p className="text-[8px] font-black text-slate-500 uppercase mb-2">Historique récent</p>
+                  <div className="space-y-2 max-h-[100px] overflow-y-auto">
+                    {myAttendance.slice(0, 5).map((att: any) => (
+                      <div key={att.id} className="flex items-center justify-between text-[10px]">
+                        <span className="text-slate-400 uppercase font-bold">{att.itemType}</span>
+                        <span className={`font-black uppercase ${att.status === 'confirmed' ? 'text-emerald-500' : att.status === 'rejected' ? 'text-red-500' : 'text-amber-500'}`}>
+                          {att.status === 'confirmed' ? 'Validé' : att.status === 'rejected' ? 'Rejeté' : 'En attente'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </section>
