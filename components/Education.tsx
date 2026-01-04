@@ -128,9 +128,11 @@ const Education: React.FC<EducationProps> = ({ user }) => {
          setSelectedFile(null);
          setTargetModuleId(null);
          fetchData();
-      } catch (e) {
-         console.error(e);
-         alert("Erreur lors de l'opération: " + (e instanceof Error ? e.message : String(e)));
+      } catch (error: any) {
+         console.error('Error in handleAdd:', error);
+         const errorMessage = error?.message || error?.error || 'Erreur lors de l\'opération';
+         const errorDetails = error?.details ? JSON.stringify(error.details) : '';
+         alert(`Erreur lors de l'opération: ${errorMessage}\n${errorDetails}`);
       } finally {
          setIsUploading(false);
       }

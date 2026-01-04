@@ -291,6 +291,17 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                               <div className="relative h-60">
                                  <img src={e.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
                                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 to-transparent" />
+
+                                 {/* Delete button for admins */}
+                                 {isAdmin && (
+                                    <button
+                                       onClick={() => deleteEvent(e.id)}
+                                       className="absolute top-4 right-4 size-10 rounded-xl bg-red-500/20 backdrop-blur-md border border-red-500/30 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                                    >
+                                       <span className="material-symbols-outlined text-lg">delete</span>
+                                    </button>
+                                 )}
+
                                  <div className="absolute bottom-6 left-6 right-6">
                                     <div className="flex justify-between items-end">
                                        <div>
