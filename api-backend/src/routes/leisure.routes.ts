@@ -90,7 +90,11 @@ router.post('/events', authenticate, requireAdmin, async (req: AuthRequest, res:
                 createdBy: req.user.id,
             },
         });
-        res.status(201).json(event);
+
+        res.status(201).json({
+            ...event,
+            costPerPerson: event.costPerPerson ? Number(event.costPerPerson) : null
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ error: 'Validation error', details: error.errors });
@@ -112,7 +116,11 @@ router.put('/events/:id', authenticate, requireAdmin, async (req: AuthRequest, r
                 eventDate: data.eventDate ? new Date(data.eventDate) : undefined,
             },
         });
-        res.json(event);
+
+        res.json({
+            ...event,
+            costPerPerson: event.costPerPerson ? Number(event.costPerPerson) : null
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ error: 'Validation error', details: error.errors });
@@ -215,7 +223,14 @@ router.get('/contributions', authenticate, async (req: AuthRequest, res: Respons
                 },
             },
         });
-        res.json(contributions);
+
+        // Convert Decimal to number for JSON serialization
+        const contributionsWithNumbers = contributions.map(c => ({
+            ...c,
+            amount: Number(c.amount)
+        }));
+
+        res.json(contributionsWithNumbers);
     } catch (error) {
         next(error);
     }
@@ -226,7 +241,10 @@ router.post('/contributions', authenticate, requireAdmin, async (req: AuthReques
     try {
         const data = contributionSchema.parse(req.body);
         const contribution = await prisma.leisureContribution.create({ data });
-        res.status(201).json(contribution);
+        res.status(201).json({
+            ...contribution,
+            amount: Number(contribution.amount)
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ error: 'Validation error', details: error.errors });

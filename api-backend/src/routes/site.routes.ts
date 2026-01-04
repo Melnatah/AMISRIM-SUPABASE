@@ -40,7 +40,15 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
             },
             orderBy: { createdAt: 'desc' },
         });
-        res.json(sites);
+
+        // Convert Decimal to number for JSON serialization
+        const sitesWithNumbers = sites.map(s => ({
+            ...s,
+            latitude: s.latitude ? Number(s.latitude) : null,
+            longitude: s.longitude ? Number(s.longitude) : null
+        }));
+
+        res.json(sitesWithNumbers);
     } catch (error) {
         next(error);
     }
@@ -51,7 +59,11 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
     try {
         const data = siteSchema.parse(req.body);
         const site = await prisma.site.create({ data });
-        res.status(201).json(site);
+        res.status(201).json({
+            ...site,
+            latitude: site.latitude ? Number(site.latitude) : null,
+            longitude: site.longitude ? Number(site.longitude) : null
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ error: 'Validation error', details: error.errors });
@@ -106,7 +118,11 @@ router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Res
         const { id } = req.params;
         const data = siteSchema.partial().parse(req.body);
         const site = await prisma.site.update({ where: { id }, data });
-        res.json(site);
+        res.json({
+            ...site,
+            latitude: site.latitude ? Number(site.latitude) : null,
+            longitude: site.longitude ? Number(site.longitude) : null
+        });
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ error: 'Validation error', details: error.errors });
