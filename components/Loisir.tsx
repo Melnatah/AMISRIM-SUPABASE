@@ -140,6 +140,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
       try {
          await leisure.addContribution({
             eventId: selectedFund.eventId,
+            profileId: user.id,
             amount: Number(contributionAmount)
          });
          setIsFundOpen(false);

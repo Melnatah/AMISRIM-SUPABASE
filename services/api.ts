@@ -157,8 +157,26 @@ export const leisure = {
     getEvents: () => fetchAPI('/leisure/events'),
     createEvent: (data: any) => fetchAPI('/leisure/events', { method: 'POST', body: JSON.stringify(data) }),
     deleteEvent: (id: string) => fetchAPI(`/leisure/events/${id}`, { method: 'DELETE' }),
-    joinEvent: (eventId: string) => fetchAPI(`/leisure/events/${eventId}/join`, { method: 'POST' }),
-    updateParticipantStatus: (eventId: string, participantId: string, status: string) => fetchAPI(`/leisure/events/${eventId}/participants/${participantId}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+    // Join event = create participant with current user
+    joinEvent: async (eventId: string) => {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        return fetchAPI('/leisure/participants', {
+            method: 'POST',
+            body: JSON.stringify({
+                eventId,
+                profileId: user.id,
+                status: 'pending'
+            })
+        });
+    },
+
+    // Update participant status
+    updateParticipantStatus: (eventId: string, participantId: string, status: string) =>
+        fetchAPI(`/leisure/participants/${participantId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ status })
+        }),
 
     getContributions: () => fetchAPI('/leisure/contributions'),
     addContribution: (data: any) => fetchAPI('/leisure/contributions', { method: 'POST', body: JSON.stringify(data) }),
