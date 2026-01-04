@@ -35,7 +35,6 @@ const Signup: React.FC<SignupProps> = ({ onBackToLogin }) => {
         year: formData.year,
         hospital: formData.hospital,
         phone: formData.phone,
-        role: 'resident',
       });
       setSubmitted(true);
     } catch (err: any) {
