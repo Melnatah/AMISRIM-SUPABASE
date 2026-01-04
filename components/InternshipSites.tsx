@@ -19,11 +19,13 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
 
   // États Modales
   const [isAddSiteModalOpen, setIsAddSiteModalOpen] = useState(false);
+  const [isEditSiteModalOpen, setIsEditSiteModalOpen] = useState(false);
   const [isAddResidentModalOpen, setIsAddResidentModalOpen] = useState(false);
   const [activeSiteId, setActiveSiteId] = useState<string | null>(null);
 
   // États Formulaires
   const [newSite, setNewSite] = useState({ name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
+  const [editSite, setEditSite] = useState({ id: '', name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
   const [selectedResidentId, setSelectedResidentId] = useState('');
 
   // Fetch data
@@ -66,6 +68,38 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
       console.error('Error adding site:', error);
       alert('Erreur lors de la création du site');
     }
+  };
+
+  const handleEditSite = async () => {
+    if (!isAdmin) return;
+    if (!editSite.name || !editSite.supervisor) {
+      alert("Veuillez remplir le nom du site et le responsable.");
+      return;
+    }
+
+    try {
+      const { id, ...data } = editSite;
+      await sites.update(id, data);
+      fetchData();
+      setIsEditSiteModalOpen(false);
+      setEditSite({ id: '', name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
+    } catch (error) {
+      console.error('Error updating site:', error);
+      alert('Erreur lors de la modification du site');
+    }
+  };
+
+  const openEditModal = (site: Site) => {
+    setEditSite({
+      id: site.id,
+      name: site.name,
+      type: site.type || 'CHU',
+      supervisor: site.supervisor || '',
+      location: site.location || '',
+      phone: site.phone || '',
+      email: site.email || ''
+    });
+    setIsEditSiteModalOpen(true);
   };
 
   const handleAddResident = async () => {
@@ -207,6 +241,90 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
         </div>
       )}
 
+      {/* MODAL: MODIFIER SITE */}
+      {isEditSiteModalOpen && isAdmin && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="size-12 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center">
+                <span className="material-symbols-outlined text-3xl">edit</span>
+              </div>
+              <h3 className="text-xl font-black text-white uppercase tracking-tight">Modifier le Site</h3>
+            </div>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Nom du Centre / Hôpital</label>
+                <input
+                  autoFocus
+                  className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
+                  placeholder="ex: CHU Sylvanus Olympio"
+                  value={editSite.name}
+                  onChange={e => setEditSite({ ...editSite, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Responsable du Stage</label>
+                <input
+                  className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
+                  placeholder="ex: Pr. Agbeko"
+                  value={editSite.supervisor}
+                  onChange={e => setEditSite({ ...editSite, supervisor: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Localisation / Adresse</label>
+                <input
+                  className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
+                  placeholder="ex: Boulevard de la Paix, Lomé"
+                  value={editSite.location}
+                  onChange={e => setEditSite({ ...editSite, location: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Téléphone</label>
+                  <input
+                    className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
+                    placeholder="ex: +228 22 21 ..."
+                    value={editSite.phone}
+                    onChange={e => setEditSite({ ...editSite, phone: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Email</label>
+                  <input
+                    type="email"
+                    className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
+                    placeholder="ex: contact@chu.tg"
+                    value={editSite.email}
+                    onChange={e => setEditSite({ ...editSite, email: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Type d'établissement</label>
+                  <select
+                    className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm"
+                    value={editSite.type}
+                    onChange={e => setEditSite({ ...editSite, type: e.target.value })}
+                  >
+                    <option value="CHU">CHU</option>
+                    <option value="CHR">CHR</option>
+                    <option value="CMA">CMA</option>
+                    <option value="Clinique">Clinique</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-6">
+                <button onClick={() => setIsEditSiteModalOpen(false)} className="flex-1 py-4 rounded-2xl bg-white/5 text-slate-400 font-black uppercase tracking-widest text-[10px]">Annuler</button>
+                <button onClick={handleEditSite} className="flex-1 py-4 rounded-2xl bg-amber-500 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-amber-500/20">Modifier</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL: AFFECTER UN ETUDIANT */}
       {isAddResidentModalOpen && isAdmin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
@@ -314,13 +432,22 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                   </div>
                   <div className="flex flex-col items-end gap-3">
                     {isAdmin && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); deleteSite(site.id); }}
-                        className="size-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
-                        title="Supprimer ce site"
-                      >
-                        <span className="material-symbols-outlined text-lg">delete</span>
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openEditModal(site); }}
+                          className="size-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-amber-500 hover:text-white"
+                          title="Modifier ce site"
+                        >
+                          <span className="material-symbols-outlined text-lg">edit</span>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteSite(site.id); }}
+                          className="size-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
+                          title="Supprimer ce site"
+                        >
+                          <span className="material-symbols-outlined text-lg">delete</span>
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
