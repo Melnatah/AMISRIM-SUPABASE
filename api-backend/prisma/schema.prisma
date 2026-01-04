@@ -60,6 +60,8 @@ model Site {
   duration   String?
   address    String?
   city       String?
+  phone      String?
+  email      String?
   latitude   Decimal?
   longitude  Decimal?
   createdAt  DateTime @default(now()) @map("created_at")

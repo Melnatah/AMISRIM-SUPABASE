@@ -50,7 +50,7 @@ export interface Site {
   equipment: string[];
   capacity: string;
   status: 'available' | 'occupied' | 'full';
-  location?: string;
+  address?: string;
   phone?: string;
   email?: string;
   residents: Resident[];

@@ -24,8 +24,8 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
   const [activeSiteId, setActiveSiteId] = useState<string | null>(null);
 
   // États Formulaires
-  const [newSite, setNewSite] = useState({ name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
-  const [editSite, setEditSite] = useState({ id: '', name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
+  const [newSite, setNewSite] = useState({ name: '', type: 'CHU', supervisor: '', address: '', phone: '', email: '' });
+  const [editSite, setEditSite] = useState({ id: '', name: '', type: 'CHU', supervisor: '', address: '', phone: '', email: '' });
   const [selectedResidentId, setSelectedResidentId] = useState('');
 
   // Fetch data
@@ -63,7 +63,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
       await sites.create(newSite);
       fetchData(); // Refresh
       setIsAddSiteModalOpen(false);
-      setNewSite({ name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
+      setNewSite({ name: '', type: 'CHU', supervisor: '', address: '', phone: '', email: '' });
     } catch (error) {
       console.error('Error adding site:', error);
       alert('Erreur lors de la création du site');
@@ -82,7 +82,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
       await sites.update(id, data);
       fetchData();
       setIsEditSiteModalOpen(false);
-      setEditSite({ id: '', name: '', type: 'CHU', supervisor: '', location: '', phone: '', email: '' });
+      setEditSite({ id: '', name: '', type: 'CHU', supervisor: '', address: '', phone: '', email: '' });
     } catch (error) {
       console.error('Error updating site:', error);
       alert('Erreur lors de la modification du site');
@@ -95,7 +95,7 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
       name: site.name,
       type: site.type || 'CHU',
       supervisor: site.supervisor || '',
-      location: site.location || '',
+      address: site.address || '',
       phone: site.phone || '',
       email: site.email || ''
     });
@@ -192,8 +192,8 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                 <input
                   className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
                   placeholder="ex: Boulevard de la Paix, Lomé"
-                  value={newSite.location}
-                  onChange={e => setNewSite({ ...newSite, location: e.target.value })}
+                  value={newSite.address}
+                  onChange={e => setNewSite({ ...newSite, address: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -276,8 +276,8 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                 <input
                   className="w-full bg-background-dark/50 border border-white/5 rounded-2xl py-4 px-5 text-white outline-none text-sm font-medium focus:ring-2 focus:ring-primary/50"
                   placeholder="ex: Boulevard de la Paix, Lomé"
-                  value={editSite.location}
-                  onChange={e => setEditSite({ ...editSite, location: e.target.value })}
+                  value={editSite.address}
+                  onChange={e => setEditSite({ ...editSite, address: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
