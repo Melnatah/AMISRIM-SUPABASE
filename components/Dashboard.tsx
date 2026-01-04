@@ -54,28 +54,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         try {
           const pending = await attendance.getPending();
           setPendingAttendance(pending);
-          // Get all attendance for stats
-          const all = await attendance.getAll();
-          const stats = {
-            pending: all.filter((a: any) => a.status === 'pending').length,
-            confirmed: all.filter((a: any) => a.status === 'confirmed').length,
-            rejected: all.filter((a: any) => a.status === 'rejected').length,
-          };
-          setAttendanceStats(stats);
         } catch (e) { console.warn("Admin attendance fetch failed", e); }
-      } else {
-        try {
-          const mine = await attendance.getMyAttendance();
-          setMyAttendance(mine);
-          // Calculate personal stats
-          const stats = {
-            pending: mine.filter((a: any) => a.status === 'pending').length,
-            confirmed: mine.filter((a: any) => a.status === 'confirmed').length,
-            rejected: mine.filter((a: any) => a.status === 'rejected').length,
-          };
-          setAttendanceStats(stats);
-        } catch (e) { console.warn("My attendance fetch failed", e); }
       }
+
+      // Always fetch personal attendance and calculate personal stats
+      try {
+        const mine = await attendance.getMyAttendance();
+        setMyAttendance(mine);
+        // Calculate personal stats
+        const stats = {
+          pending: mine.filter((a: any) => a.status === 'pending').length,
+          confirmed: mine.filter((a: any) => a.status === 'confirmed').length,
+          rejected: mine.filter((a: any) => a.status === 'rejected').length,
+        };
+        setAttendanceStats(stats);
+      } catch (e) { console.warn("My attendance fetch failed", e); }
 
     } catch (e) {
       console.error("Dashboard fetch error", e);
@@ -180,70 +173,68 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
           </div>
 
-          {/* Panel for Attendance - Admin sees pending validations, Users see their stats */}
-          {isAdmin ? (
-            <div className="bg-surface-dark rounded-[2.5rem] border border-emerald-500/30 p-8 shadow-xl animate-in fade-in slide-in-from-right-4">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-white text-sm font-black uppercase tracking-widest">Validations ({pendingAttendance.length})</h3>
-                <span className="size-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center material-symbols-outlined text-sm">verified_user</span>
+          {/* Personal Attendance Stats Panel - Shown to everyone */}
+          <div className="bg-surface-dark rounded-[2.5rem] border border-primary/30 p-8 shadow-xl animate-in fade-in slide-in-from-right-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-white text-sm font-black uppercase tracking-widest">Mon Statut</h3>
+              <span className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center material-symbols-outlined text-sm">person_check</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
+                <p className="text-2xl font-black text-amber-500">{attendanceStats.pending}</p>
+                <p className="text-[8px] font-black text-amber-500 uppercase mt-1">En attente</p>
               </div>
-              <div className="space-y-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                {pendingAttendance.length > 0 ? pendingAttendance.map(att => (
-                  <div key={att.id} className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between group">
-                    <div>
-                      <p className="text-white text-[10px] font-black uppercase">{att.profile?.firstName} {att.profile?.lastName}</p>
-                      <p className="text-primary text-[8px] font-black uppercase">{att.itemType}</p>
-                    </div>
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => updateAttendanceStatus(att.id, 'confirmed')} className="size-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">done</span></button>
-                      <button onClick={() => updateAttendanceStatus(att.id, 'rejected')} className="size-7 rounded-lg bg-red-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">close</span></button>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="text-center py-10">
-                    <p className="text-slate-600 text-[10px] font-black uppercase italic">Aucune attente</p>
-                  </div>
-                )}
+              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                <p className="text-2xl font-black text-emerald-500">{attendanceStats.confirmed}</p>
+                <p className="text-[8px] font-black text-emerald-500 uppercase mt-1">Validés</p>
+              </div>
+              <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center">
+                <p className="text-2xl font-black text-red-500">{attendanceStats.rejected}</p>
+                <p className="text-[8px] font-black text-red-500 uppercase mt-1">Rejetés</p>
               </div>
             </div>
-          ) : (
-            <div className="bg-surface-dark rounded-[2.5rem] border border-primary/30 p-8 shadow-xl animate-in fade-in slide-in-from-right-4">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-white text-sm font-black uppercase tracking-widest">Mon Statut</h3>
-                <span className="size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center material-symbols-outlined text-sm">person_check</span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
-                  <p className="text-2xl font-black text-amber-500">{attendanceStats.pending}</p>
-                  <p className="text-[8px] font-black text-amber-500 uppercase mt-1">En attente</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                  <p className="text-2xl font-black text-emerald-500">{attendanceStats.confirmed}</p>
-                  <p className="text-[8px] font-black text-emerald-500 uppercase mt-1">Validés</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center">
-                  <p className="text-2xl font-black text-red-500">{attendanceStats.rejected}</p>
-                  <p className="text-[8px] font-black text-red-500 uppercase mt-1">Rejetés</p>
+            {myAttendance.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-white/5">
+                <p className="text-[8px] font-black text-slate-500 uppercase mb-2">Historique récent</p>
+                <div className="space-y-2 max-h-[100px] overflow-y-auto">
+                  {myAttendance.slice(0, 5).map((att: any) => (
+                    <div key={att.id} className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-400 uppercase font-bold">{att.itemType}</span>
+                      <span className={`font-black uppercase ${att.status === 'confirmed' ? 'text-emerald-500' : att.status === 'rejected' ? 'text-red-500' : 'text-amber-500'}`}>
+                        {att.status === 'confirmed' ? 'Validé' : att.status === 'rejected' ? 'Rejeté' : 'En attente'}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
-              {myAttendance.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-white/5">
-                  <p className="text-[8px] font-black text-slate-500 uppercase mb-2">Historique récent</p>
-                  <div className="space-y-2 max-h-[100px] overflow-y-auto">
-                    {myAttendance.slice(0, 5).map((att: any) => (
-                      <div key={att.id} className="flex items-center justify-between text-[10px]">
-                        <span className="text-slate-400 uppercase font-bold">{att.itemType}</span>
-                        <span className={`font-black uppercase ${att.status === 'confirmed' ? 'text-emerald-500' : att.status === 'rejected' ? 'text-red-500' : 'text-amber-500'}`}>
-                          {att.status === 'confirmed' ? 'Validé' : att.status === 'rejected' ? 'Rejeté' : 'En attente'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </section>
+
+        {/* Admin Validation Panel - Only for admins */}
+        {isAdmin && pendingAttendance.length > 0 && (
+          <section className="bg-surface-dark rounded-[2.5rem] border border-emerald-500/30 p-8 shadow-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-white text-sm font-black uppercase tracking-widest">Validations en attente ({pendingAttendance.length})</h3>
+              <span className="size-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center material-symbols-outlined text-sm">verified_user</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pendingAttendance.map(att => (
+                <div key={att.id} className="p-4 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between group hover:border-primary/30 transition-all">
+                  <div>
+                    <p className="text-white text-xs font-black">{att.profile?.firstName} {att.profile?.lastName}</p>
+                    <p className="text-primary text-[10px] font-black uppercase">{att.itemType}</p>
+                    <p className="text-slate-500 text-[8px]">{new Date(att.createdAt).toLocaleString('fr-FR')}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => updateAttendanceStatus(att.id, 'confirmed')} className="size-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">done</span></button>
+                    <button onClick={() => updateAttendanceStatus(att.id, 'rejected')} className="size-8 rounded-lg bg-red-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">close</span></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Modules Grid - 2 cols on mobile, 6 on desktop */}
         <section>
