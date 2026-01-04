@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { profiles, contributions } from '../services/api';
+import { profiles, contributions, attendance } from '../services/api';
 
 type AdminTab = 'users' | 'finance' | 'attendance' | 'broadcast' | 'system';
 
@@ -102,8 +102,41 @@ const AdminSettings: React.FC = () => {
   };
 
   const fetchPendingAttendance = async () => {
-    // Mock attendance for now
-    setPendingAttendance([]);
+    try {
+      const data = await attendance.getPending();
+      setPendingAttendance(data || []);
+    } catch (e) {
+      console.error('Error fetching pending attendance:', e);
+      setPendingAttendance([]);
+    }
+  };
+
+  const handleAttendanceAction = async (id: string, status: 'confirmed' | 'rejected') => {
+    try {
+      await attendance.validate(id, status);
+      fetchPendingAttendance();
+      alert(status === 'confirmed' ? 'Émargement validé !' : 'Émargement rejeté.');
+    } catch (e) {
+      console.error(e);
+      alert('Erreur lors de la validation.');
+    }
+  };
+
+  const handleExportAttendance = async () => {
+    try {
+      const blob = await attendance.exportCSV({ status: 'confirmed' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `emargements_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert('Erreur lors de l\'export.');
+    }
   };
 
   useEffect(() => {
@@ -263,11 +296,6 @@ const AdminSettings: React.FC = () => {
       console.error(e);
       alert("Erreur.");
     }
-  };
-
-  const handleAttendanceAction = async (id: string, status: 'confirmed' | 'rejected') => {
-    // Mock update
-    fetchPendingAttendance();
   };
 
   const handleSendBroadcast = async () => {
@@ -445,8 +473,8 @@ const AdminSettings: React.FC = () => {
                     type="button"
                     onClick={() => setNewUser({ ...newUser, role: 'resident' })}
                     className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${newUser.role === 'resident'
-                        ? 'bg-primary/20 border-primary text-primary'
-                        : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                      ? 'bg-primary/20 border-primary text-primary'
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
                       }`}
                   >
                     <span className="material-symbols-outlined text-2xl">school</span>
@@ -456,8 +484,8 @@ const AdminSettings: React.FC = () => {
                     type="button"
                     onClick={() => setNewUser({ ...newUser, role: 'admin' })}
                     className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${newUser.role === 'admin'
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-500'
-                        : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
+                      ? 'bg-amber-500/20 border-amber-500 text-amber-500'
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/30'
                       }`}
                   >
                     <span className="material-symbols-outlined text-2xl">admin_panel_settings</span>
@@ -658,27 +686,36 @@ const AdminSettings: React.FC = () => {
                   <span className="material-symbols-outlined text-primary">how_to_reg</span>
                   Émargements à Valider
                 </h3>
-                <span className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">
-                  {pendingAttendance.length} En attente
-                </span>
+                <div className="flex items-center gap-4">
+                  <span className="px-4 py-1.5 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">
+                    {pendingAttendance.length} En attente
+                  </span>
+                  <button
+                    onClick={handleExportAttendance}
+                    className="px-4 py-2 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded-xl uppercase flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all"
+                  >
+                    <span className="material-symbols-outlined text-sm">download</span>
+                    Exporter CSV
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
-                {pendingAttendance.length > 0 ? pendingAttendance.map(att => (
+                {pendingAttendance.length > 0 ? pendingAttendance.map((att: any) => (
                   <div key={att.id} className="flex flex-col md:flex-row md:items-center justify-between p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all gap-6">
                     <div className="flex items-center gap-5">
                       <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                         <span className="material-symbols-outlined text-2xl">
-                          {att.item_type === 'staff' ? 'groups' : att.item_type === 'epu' ? 'school' : att.item_type === 'diu' ? 'workspace_premium' : 'location_on'}
+                          {att.itemType === 'staff' ? 'groups' : att.itemType === 'epu' ? 'school' : att.itemType === 'diu' ? 'workspace_premium' : 'location_on'}
                         </span>
                       </div>
                       <div>
-                        <p className="text-lg font-black text-white">{att.profiles.first_name} {att.profiles.last_name}</p>
+                        <p className="text-lg font-black text-white">{att.profile?.firstName} {att.profile?.lastName}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-primary text-[10px] font-black uppercase tracking-widest">{att.item_type}</span>
+                          <span className="text-primary text-[10px] font-black uppercase tracking-widest">{att.itemType}</span>
                           <span className="text-slate-500 text-[10px] font-bold uppercase">•</span>
                           <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-                            {new Date(att.created_at).toLocaleDateString()} {new Date(att.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(att.createdAt).toLocaleDateString('fr-FR')} {new Date(att.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       </div>

@@ -159,8 +159,27 @@ export const leisure = {
 export const attendance = {
     getMyAttendance: () => fetchAPI('/attendance/me'),
     getPending: () => fetchAPI('/attendance/pending'), // Admin 
+    getAll: (filters?: { startDate?: string; endDate?: string; status?: string }) => {
+        const params = new URLSearchParams();
+        if (filters?.startDate) params.append('startDate', filters.startDate);
+        if (filters?.endDate) params.append('endDate', filters.endDate);
+        if (filters?.status) params.append('status', filters.status);
+        return fetchAPI(`/attendance/all?${params.toString()}`);
+    },
     declare: (itemType: string, itemId?: string) => fetchAPI('/attendance', { method: 'POST', body: JSON.stringify({ itemType, itemId }) }),
     validate: (id: string, status: 'confirmed' | 'rejected') => fetchAPI(`/attendance/${id}/validate`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+    delete: (id: string) => fetchAPI(`/attendance/${id}`, { method: 'DELETE' }),
+    exportCSV: (filters?: { startDate?: string; endDate?: string; status?: string }) => {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const params = new URLSearchParams();
+        if (filters?.startDate) params.append('startDate', filters.startDate);
+        if (filters?.endDate) params.append('endDate', filters.endDate);
+        if (filters?.status) params.append('status', filters.status);
+
+        return fetch(`${API_URL.replace('/api', '')}/api/attendance/export?${params.toString()}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }).then(res => res.blob());
+    },
 };
 
 export const settings = {
