@@ -176,7 +176,7 @@ export const attendance = {
         if (filters?.endDate) params.append('endDate', filters.endDate);
         if (filters?.status) params.append('status', filters.status);
 
-        return fetch(`${API_URL.replace('/api', '')}/api/attendance/export?${params.toString()}`, {
+        return fetch(`${API_URL}/attendance/export?${params.toString()}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.blob());
     },
