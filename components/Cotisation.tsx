@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Contribution, Profile } from '../types';
-import { contributions, profiles } from '../services/api';
+import { contributions as contributionsAPI, profiles } from '../services/api';
 
 interface CotisationProps {
   user: { id: string, name: string, role: 'admin' | 'resident' };
@@ -23,16 +23,8 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
 
   const fetchContributions = async () => {
     try {
-      const data = await contributions.getAll();
-      setContributions((data || []).map((c: any) => ({
-        id: c.id,
-        contributorName: c.contributorName || 'Inconnu',
-        contributorType: c.contributorType || 'Resident',
-        amount: c.amount,
-        date: c.date || new Date(c.createdAt).toLocaleDateString('fr-FR'),
-        month: c.month || 'Février',
-        reason: c.reason || 'Autre'
-      })));
+      const data = await contributionsAPI.getAll();
+      setContributions(data || []);
     } catch (e) {
       console.error("Error fetching contributions", e);
     } finally {
@@ -42,14 +34,19 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
 
   useEffect(() => {
     fetchContributions();
-    // Load users for the dropdown
-    profiles.getAll().then(setUsersList).catch(console.error);
-  }, []);
+    const fetchUsers = async () => {
+      if (user.role === 'admin') {
+        const data = await profiles.getAll();
+        setUsersList(data || []);
+      }
+    };
+    fetchUsers();
+  }, [user.role]);
 
   const totalFund = contributions.reduce((acc, curr) => acc + curr.amount, 0);
   const monthTotal = contributions
     .filter(c => c.month === 'Février') // In a real app, this should be dynamic current month
-    .reduce((acc, curr) => acc + curr.amount, 0);
+    .reduce((acc, curr) => acc + Number(curr.amount), 0);
 
   const partnerCount = new Set(contributions.filter(c => c.contributorType === 'Partenaire').map(c => c.contributorName)).size;
 
@@ -58,7 +55,7 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
     if (!formData.contributorName || !formData.amount) return;
 
     try {
-      await contributions.create({
+      await contributionsAPI.create({
         contributorName: formData.contributorName,
         profileId: formData.profileId || undefined,
         contributorType: formData.contributorType,
@@ -68,7 +65,6 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
       });
 
       fetchContributions();
-      setIsModalOpen(false);
       setIsModalOpen(false);
       setFormData({ contributorName: '', profileId: '', contributorType: 'Resident', amount: '', month: 'Février', reason: 'Mensualité' });
     } catch (e) {
@@ -80,7 +76,7 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
   const deleteContribution = async (id: string) => {
     if (window.confirm("Supprimer cette entrée ?")) {
       try {
-        await contributions.delete(id);
+        await contributionsAPI.delete(id);
         fetchContributions();
       } catch (e) {
         console.error("Error deleting", e);
@@ -123,8 +119,8 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
             </h3>
             <form onSubmit={handleAddContribution} className="space-y-4">
               <div className="grid grid-cols-2 gap-1 p-1 bg-background-dark/50 rounded-xl border border-white/5">
-                <button type="button" onClick={() => setFormData({ ...formData, contributorType: 'Resident', contributorName: '', profileId: '' })} className={`py-2 text-[9px] font-black uppercase rounded-lg transition-all ${formData.contributorType === 'Resident' ? 'bg-primary text-white shadow-lg' : 'text-slate-500'}`}>Résident</button>
-                <button type="button" onClick={() => setFormData({ ...formData, contributorType: 'Partenaire', profileId: '' })} className={`py-2 text-[9px] font-black uppercase rounded-lg transition-all ${formData.contributorType === 'Partenaire' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-500'}`}>Partenaire</button>
+                <button type="button" onClick={() => setFormData({ ...formData, contributorType: 'Resident', contributorName: '', profileId: '' })} className={`py - 2 text - [9px] font - black uppercase rounded - lg transition - all ${formData.contributorType === 'Resident' ? 'bg-primary text-white shadow-lg' : 'text-slate-500'} `}>Résident</button>
+                <button type="button" onClick={() => setFormData({ ...formData, contributorType: 'Partenaire', profileId: '' })} className={`py - 2 text - [9px] font - black uppercase rounded - lg transition - all ${formData.contributorType === 'Partenaire' ? 'bg-indigo-500 text-white shadow-lg' : 'text-slate-500'} `}>Partenaire</button>
               </div>
 
               {formData.contributorType === 'Resident' ? (
@@ -137,7 +133,7 @@ const Cotisation: React.FC<CotisationProps> = ({ user }) => {
                     setFormData({
                       ...formData,
                       profileId: e.target.value,
-                      contributorName: selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : ''
+                      contributorName: selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName} ` : ''
                     });
                   }}
                 >
