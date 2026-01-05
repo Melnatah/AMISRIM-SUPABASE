@@ -28,22 +28,27 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
   const notificationRef = useRef<HTMLDivElement>(null);
 
   // Search Logic
+  // Search Logic
+  const performSearch = async (query: string) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const results = await searchAPI.global(query);
+      setSearchResults(results || []);
+    } catch (error) {
+      console.error(error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   useEffect(() => {
-    const delayDebounceFn = setTimeout(async () => {
-      if (searchQuery.length >= 2) {
-        setIsSearching(true);
-        try {
-          const results = await searchAPI.global(searchQuery);
-          setSearchResults(results || []);
-        } catch (error) {
-          console.error(error);
-          setSearchResults([]);
-        } finally {
-          setIsSearching(false);
-        }
-      } else {
-        setSearchResults([]);
-      }
+    const delayDebounceFn = setTimeout(() => {
+      performSearch(searchQuery);
     }, 400);
 
     return () => clearTimeout(delayDebounceFn);
@@ -160,14 +165,18 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
             {/* Search Bar */}
             <div className="relative hidden md:block w-72" ref={searchRef}>
               <div className="flex items-center h-10 w-full rounded-full bg-gray-100 dark:bg-surface-dark border border-gray-200 dark:border-surface-highlight px-4 group focus-within:border-primary/50 transition-all">
-                <span className={`material-symbols-outlined text-sm transition-colors ${isSearching ? 'text-primary animate-spin' : 'text-slate-400 group-focus-within:text-primary'}`}>
+                <button
+                  onClick={() => performSearch(searchQuery)}
+                  className={`material-symbols-outlined text-sm transition-colors bg-transparent border-none cursor-pointer ${isSearching ? 'text-primary animate-spin' : 'text-slate-400 group-focus-within:text-primary hover:text-primary'}`}
+                >
                   {isSearching ? 'sync' : 'search'}
-                </span>
+                </button>
                 <input
-                  className="bg-transparent border-none text-xs w-full focus:ring-0 placeholder:text-slate-500 ml-2 text-slate-900 dark:text-white"
+                  className="bg-transparent border-none text-xs w-full focus:ring-0 placeholder:text-slate-500 ml-2 text-slate-900 dark:text-white outline-none"
                   placeholder="Rechercher cours, site, utilisateur..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') performSearch(searchQuery); }}
                 />
                 {searchQuery && (
                   <button onClick={() => { setSearchQuery(''); setSearchResults([]); }} className="material-symbols-outlined text-slate-400 text-sm hover:text-red-500">close</button>
