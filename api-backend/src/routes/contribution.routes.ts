@@ -57,11 +57,9 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
             }
         });
 
-        res.status(201).json({
-            ...contribution,
-            amount: Number(contribution.amount)
-        });
+        res.status(201).json(contribution);
     } catch (error) {
+        console.error('Error creating contribution:', error); // Debug log
         if (error instanceof z.ZodError) {
             res.status(400).json({ error: 'Validation error', details: error.errors });
             return;

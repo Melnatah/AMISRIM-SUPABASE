@@ -257,8 +257,16 @@ const Education: React.FC<EducationProps> = ({ user }) => {
       } catch (e) { alert("Erreur suppression"); }
    };
 
-   const handleDownload = (url: string, name: string) => {
-      // Robustesse : Si l'URL est relative (commence par /), on ajoute l'URL de l'API
+   const handleDownload = (url: string, name: string, id?: string) => {
+      // Si on a un ID, on privilégie la route API qui force le bon nom de fichier via Content-Disposition
+      if (id) {
+         const apiUrl = import.meta.env.VITE_API_URL || 'https://api-amisrim.jadeoffice.cloud';
+         const downloadUrl = `${apiUrl}/api/files/${id}/download`;
+         window.open(downloadUrl, '_blank');
+         return;
+      }
+
+      // Robustesse Fallback
       const fullUrl = url.startsWith('/')
          ? `${import.meta.env.VITE_API_URL || 'https://api-amisrim.jadeoffice.cloud'}${url}`
          : url;
@@ -266,7 +274,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
       const link = document.createElement('a');
       link.href = fullUrl;
       link.download = name;
-      link.target = '_blank'; // Ouvrir dans un nouvel onglet par sécurité
+      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -391,7 +399,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                                 <div key={f.id} className="flex items-center justify-between py-2 text-[10px] text-slate-400 border-t border-white/5">
                                                    <span className="truncate">{f.name}</span>
                                                    <div className="flex items-center gap-2">
-                                                      <button onClick={() => handleDownload(f.url || '', f.name)} className="material-symbols-outlined text-sm hover:text-white">download</button>
+                                                      <button onClick={() => handleDownload(f.url || '', f.name, f.id)} className="material-symbols-outlined text-sm hover:text-white">download</button>
                                                       {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-sm text-red-500">delete</button>}
                                                    </div>
                                                 </div>
@@ -429,7 +437,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                  <div key={f.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 group hover:border-primary/50 transition-all">
                                     <span className="text-[10px] font-bold text-slate-300 truncate">{f.name}</span>
                                     <div className="flex items-center gap-2">
-                                       <button onClick={() => handleDownload(f.url || '', f.name)} className="material-symbols-outlined text-slate-500 hover:text-white text-base">download</button>
+                                       <button onClick={() => handleDownload(f.url || '', f.name, f.id)} className="material-symbols-outlined text-slate-500 hover:text-white text-base">download</button>
                                        {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-red-500 text-base">delete</button>}
                                     </div>
                                  </div>
@@ -476,7 +484,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                              <div key={f.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5">
                                                 <span className="text-[10px] font-bold text-slate-400 truncate">{f.name}</span>
                                                 <div className="flex items-center gap-2">
-                                                   <button onClick={() => handleDownload(f.url || '', f.name)} className="material-symbols-outlined text-sm text-slate-500 hover:text-white">download</button>
+                                                   <button onClick={() => handleDownload(f.url || '', f.name, f.id)} className="material-symbols-outlined text-sm text-slate-500 hover:text-white">download</button>
                                                    {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-sm text-red-500">delete</button>}
                                                 </div>
                                              </div>

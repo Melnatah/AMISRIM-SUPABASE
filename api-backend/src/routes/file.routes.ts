@@ -3,7 +3,37 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.js';
 
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const router = Router();
+
+// GET /api/files/:id/download
+router.get('/:id/download', async (req: any, res: Response, next) => {
+    try {
+        const { id } = req.params;
+        const file = await prisma.file.findUnique({ where: { id } });
+
+        if (!file) {
+            res.status(404).json({ error: 'File not found' });
+            return;
+        }
+
+        // Construct absolute path
+        // url is like '/uploads/filename.ext', we need 'uploads/filename.ext'
+        const relativePath = file.url.startsWith('/') ? file.url.substring(1) : file.url;
+        // Check if we are in src/routes or dist/routes. Safe bet: resolve from CWD or assume standard structure
+        // server.ts serves '../uploads'.
+        const filePath = path.resolve(__dirname, '../../', relativePath);
+
+        res.download(filePath, file.name);
+    } catch (error) {
+        next(error);
+    }
+});
 
 const fileSchema = z.object({
     moduleId: z.string().uuid().optional(),
