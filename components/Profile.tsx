@@ -66,8 +66,33 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
 
         try {
             await profiles.updateMe(formData);
-            setMessage({ type: 'success', text: 'Profil mis à jour avec succès !' });
+
+            // Update localStorage/sessionStorage with new name
+            const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+            if (userStr) {
+                const userData = JSON.parse(userStr);
+                userData.profile = {
+                    ...userData.profile,
+                    firstName: formData.firstName,
+                    lastName: formData.lastName,
+                    phone: formData.phone,
+                    year: formData.year,
+                    hospital: formData.hospital
+                };
+
+                // Update in the same storage location
+                if (localStorage.getItem('user')) {
+                    localStorage.setItem('user', JSON.stringify(userData));
+                } else {
+                    sessionStorage.setItem('user', JSON.stringify(userData));
+                }
+            }
+
+            setMessage({ type: 'success', text: 'Profil mis à jour avec succès ! Rechargez la page pour voir les changements.' });
             fetchProfile(); // Re-fetch profile to update UI with latest data
+
+            // Reload page after 1.5 seconds to refresh all components
+            setTimeout(() => window.location.reload(), 1500);
         } catch (err: any) {
             console.error('Error updating profile:', err);
             setMessage({ type: 'error', text: 'Erreur lors de la mise à jour : ' + err.message });
