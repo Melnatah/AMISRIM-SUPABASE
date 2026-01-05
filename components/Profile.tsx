@@ -76,18 +76,18 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
             const fetchedProfile = await profiles.getMe();
             setProfile({
                 id: fetchedProfile.id,
-                first_name: fetchedProfile.first_name || '',
-                last_name: fetchedProfile.last_name || '',
+                first_name: fetchedProfile.firstName || '',
+                last_name: fetchedProfile.lastName || '',
                 email: fetchedProfile.email || '',
                 phone: fetchedProfile.phone || '',
                 year: fetchedProfile.year || '',
                 hospital: fetchedProfile.hospital || '',
                 status: fetchedProfile.status || 'pending',
-                created_at: fetchedProfile.created_at || new Date().toISOString()
+                created_at: fetchedProfile.createdAt || new Date().toISOString()
             });
             setFormData({
-                first_name: fetchedProfile.first_name || '',
-                last_name: fetchedProfile.last_name || '',
+                first_name: fetchedProfile.firstName || '',
+                last_name: fetchedProfile.lastName || '',
                 email: fetchedProfile.email || '',
                 phone: fetchedProfile.phone || '',
                 hospital: fetchedProfile.hospital || '',
@@ -111,7 +111,16 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
         setMessage(null);
 
         try {
-            await profiles.updateMe(formData);
+            // Transform formData to match API expectations (camelCase)
+            const dataToSend = {
+                firstName: formData.first_name,
+                lastName: formData.last_name,
+                phone: formData.phone,
+                year: formData.year,
+                hospital: formData.hospital
+            };
+
+            await profiles.updateMe(dataToSend);
 
             // Update localStorage/sessionStorage with new name
             const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -119,8 +128,8 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
                 const userData = JSON.parse(userStr);
                 userData.profile = {
                     ...userData.profile,
-                    firstName: formData.firstName,
-                    lastName: formData.lastName,
+                    firstName: formData.first_name,
+                    lastName: formData.last_name,
                     phone: formData.phone,
                     year: formData.year,
                     hospital: formData.hospital
