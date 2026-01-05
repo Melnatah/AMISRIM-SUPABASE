@@ -29,7 +29,17 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
             },
             orderBy: { createdAt: 'desc' },
         });
-        res.json(modules);
+
+        // Convert BigInt to Number for serialization
+        const serializedModules = modules.map(m => ({
+            ...m,
+            files: m.files.map(f => ({
+                ...f,
+                size: Number(f.size)
+            }))
+        }));
+
+        res.json(serializedModules);
     } catch (error) {
         next(error);
     }
