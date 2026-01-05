@@ -61,6 +61,7 @@ const AdminSettings: React.FC = () => {
 
   // Add user modal state
   const [addUserModal, setAddUserModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [newUser, setNewUser] = useState({
     firstName: '',
     lastName: '',
@@ -271,8 +272,11 @@ const AdminSettings: React.FC = () => {
       return;
     }
     try {
-      // Use the register endpoint to create the user
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/register`, {
+      // Clean URL construction
+      const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+      const url = `${baseUrl}/api/auth/register`;
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -288,25 +292,31 @@ const AdminSettings: React.FC = () => {
 
       if (!response.ok) {
         const err = await response.json();
-        throw new Error(err.error || 'Erreur');
+        throw new Error(err.error || `Erreur ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
 
-      // Now approve and set role
-      await profiles.updateStatus(data.user.id, 'approved');
-      if (newUser.role === 'admin') {
-        await profiles.updateRole(data.user.id, 'admin');
+      // Now approve and set role using authenticated services
+      if (data.user && data.user.id) {
+        await profiles.updateStatus(data.user.id, 'approved');
+        if (newUser.role === 'admin') {
+          await profiles.updateRole(data.user.id, 'admin');
+        }
+      } else {
+        console.warn("User ID not found in response", data);
       }
+
+      // Refresh both lists
+      fetchPendingUsers();
+      fetchApprovedUsers();
 
       setAddUserModal(false);
       setNewUser({ firstName: '', lastName: '', email: '', password: '', year: '1', hospital: '', phone: '', role: 'resident' });
-      fetchApprovedUsers();
-      fetchPendingUsers();
-      alert(`Utilisateur "${newUser.firstName} ${newUser.lastName}" créé avec succès !`);
+      alert("Utilisateur créé et approuvé avec succès !");
     } catch (e: any) {
       console.error(e);
-      alert(`Erreur: ${e.message}`);
+      alert("Erreur lors de la création : " + e.message);
     }
   };
 
@@ -549,16 +559,25 @@ const AdminSettings: React.FC = () => {
                 />
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Mot de passe *</label>
-                <input
-                  type="password"
-                  value={newUser.password}
-                  onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                  className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
-                  placeholder="Minimum 6 caractères"
-                  minLength={6}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={newUser.password}
+                    onChange={e => setNewUser({ ...newUser, password: e.target.value })}
+                    className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-4 pr-10 text-slate-900 dark:text-white text-sm outline-none focus:border-primary"
+                    placeholder="Minimum 6 caractères"
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
