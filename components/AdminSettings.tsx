@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { profiles, contributions, attendance } from '../services/api';
+import { profiles, contributions, attendance, auth } from '../services/api';
 
 type AdminTab = 'users' | 'finance' | 'attendance' | 'broadcast' | 'system';
 
@@ -18,6 +18,18 @@ interface ApprovedUser extends PendingUser {
 }
 
 const AdminSettings: React.FC = () => {
+  // Double Security Check
+  const currentUser = auth.getCurrentUser();
+  if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'ADMIN')) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center p-10">
+        <span className="material-symbols-outlined text-6xl text-red-500 mb-4">gpp_bad</span>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Accès Refusé</h1>
+        <p className="text-slate-500 mt-2">Vous n'avez pas les droits d'administration nécessaires pour voir cette page.</p>
+      </div>
+    );
+  }
+
   const [activeTab, setActiveTab] = useState<AdminTab>('users');
   const [loading, setLoading] = useState(false);
 
