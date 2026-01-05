@@ -193,6 +193,15 @@ router.post('/login', async (req: Request, res: Response, next) => {
             throw new AppError('Profile not found', 404, 'PROFILE_NOT_FOUND');
         }
 
+        // Check if user is approved
+        if (user.profile.status === 'pending') {
+            throw new AppError('Votre compte est en attente d\'approbation par un administrateur', 403, 'ACCOUNT_PENDING');
+        }
+
+        if (user.profile.status === 'rejected') {
+            throw new AppError('Votre demande d\'inscription a été refusée', 403, 'ACCOUNT_REJECTED');
+        }
+
         // Generate token
         const token = generateToken(user.id, user.email);
 
