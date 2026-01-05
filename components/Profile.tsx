@@ -63,8 +63,12 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
                 }
             }
 
+
+            // Notify App to refresh user state (header avatar)
+            window.dispatchEvent(new Event('user-updated'));
+
             setMessage({ type: 'success', text: 'Photo de profil mise à jour !' });
-            setTimeout(() => window.location.reload(), 1000);
+            // No reload needed, state is updated locally and globally via event
         } catch (err: any) {
             console.error('Error uploading avatar:', err);
             setMessage({ type: 'error', text: 'Erreur lors de l\'upload : ' + err.message });
@@ -148,11 +152,11 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
                 }
             }
 
-            setMessage({ type: 'success', text: 'Profil mis à jour avec succès ! Rechargez la page pour voir les changements.' });
-            fetchProfile(); // Re-fetch profile to update UI with latest data
+            // Notify App to refresh user state
+            window.dispatchEvent(new Event('user-updated'));
 
-            // Reload page after 1.5 seconds to refresh all components
-            setTimeout(() => window.location.reload(), 1500);
+            setMessage({ type: 'success', text: 'Profil mis à jour avec succès !' });
+            fetchProfile(); // Re-fetch profile to update UI with latest data
         } catch (err: any) {
             console.error('Error updating profile:', err);
             setMessage({ type: 'error', text: 'Erreur lors de la mise à jour : ' + err.message });

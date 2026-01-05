@@ -7,7 +7,7 @@ import { messages as messagesAPI } from '../services/api';
 
 interface LayoutProps {
   children: React.ReactNode;
-  user: { name: string, role: 'admin' | 'resident' };
+  user: { name: string, role: 'admin' | 'resident', avatar?: string };
   onLogout: () => void;
   sites: Site[];
 }
@@ -175,9 +175,17 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className={`flex items-center gap-2 p-1 rounded-xl transition-all ${isDropdownOpen ? 'bg-primary/10' : 'hover:bg-gray-100 dark:hover:bg-surface-dark'}`}
               >
-                <div className="size-8 rounded-lg bg-primary text-white flex items-center justify-center font-black text-xs shadow-lg">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
+                {user.avatar ? (
+                  <img
+                    src={`${import.meta.env.VITE_API_URL || 'https://api-amisrim.jadeoffice.cloud'}${user.avatar}`}
+                    alt={user.name}
+                    className="size-8 rounded-lg object-cover shadow-lg border border-gray-200 dark:border-white/10"
+                  />
+                ) : (
+                  <div className="size-8 rounded-lg bg-primary text-white flex items-center justify-center font-black text-xs shadow-lg">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="hidden md:flex flex-col items-start leading-none ml-1">
                   <span className="text-[10px] font-black uppercase text-slate-900 dark:text-white">{user.name}</span>
                   <span className="text-[8px] font-bold uppercase text-slate-500">{user.role}</span>

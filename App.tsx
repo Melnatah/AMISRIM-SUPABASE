@@ -23,6 +23,7 @@ interface User {
   id: string;
   name: string;
   role: 'admin' | 'resident';
+  avatar?: string;
 }
 
 const App: React.FC = () => {
@@ -31,23 +32,28 @@ const App: React.FC = () => {
   const [sites, setSites] = useState<Site[]>([]);
   const [showSplash, setShowSplash] = useState(true);
 
+  const loadUser = () => {
+    if (auth.isAuthenticated()) {
+      const user = auth.getCurrentUser();
+      if (user) {
+        const name = user.profile ? `${user.profile.firstName || user.profile.first_name || ''} ${user.profile.lastName || user.profile.last_name || ''}`.trim() : user.email.split('@')[0];
+        // Normalisation du rôle (ADMIN -> admin)
+        const role = (user.role === 'ADMIN' || user.role === 'admin') ? 'admin' : 'resident';
+
+        setUser({
+          id: user.id,
+          name: name || user.email.split('@')[0],
+          role: role as 'admin' | 'resident',
+          avatar: user.profile?.avatar
+        });
+      }
+    }
+  };
+
   useEffect(() => {
     const initApp = async () => {
       // 1. Check Auth
-      if (auth.isAuthenticated()) {
-        const user = auth.getCurrentUser();
-        if (user) {
-          const name = user.profile ? `${user.profile.firstName} ${user.profile.lastName}` : user.email.split('@')[0];
-          // Normalisation du rôle (ADMIN -> admin)
-          const role = (user.role === 'ADMIN' || user.role === 'admin') ? 'admin' : 'resident';
-
-          setUser({
-            id: user.id,
-            name,
-            role: role as 'admin' | 'resident'
-          });
-        }
-      }
+      loadUser();
 
       // 2. Fetch Sites
       try {
@@ -61,6 +67,16 @@ const App: React.FC = () => {
     };
 
     initApp();
+
+    // Listen for user updates (e.g. from Profile component)
+    const handleUserUpdate = () => {
+      loadUser();
+    };
+    window.addEventListener('user-updated', handleUserUpdate);
+
+    return () => {
+      window.removeEventListener('user-updated', handleUserUpdate);
+    };
   }, []);
 
   const handleLogin = (name: string) => {
