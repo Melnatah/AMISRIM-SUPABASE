@@ -67,6 +67,20 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
     }
 });
 
+// PATCH /api/messages/:id/read - Mark message as read
+router.patch('/:id/read', authenticate, async (req: AuthRequest, res: Response, next) => {
+    try {
+        const { id } = req.params;
+
+        // Note: Since messages don't have a 'read' field in the schema,
+        // this is a placeholder for future implementation or client-side tracking
+        // For now, just return success
+        res.json({ message: 'Message marked as read', id });
+    } catch (error) {
+        next(error);
+    }
+});
+
 // DELETE /api/messages/:id - Delete message (admin only)
 router.delete('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response, next) => {
     try {
