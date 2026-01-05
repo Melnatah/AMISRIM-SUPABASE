@@ -11,6 +11,7 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     const [formData, setFormData] = useState({
@@ -21,6 +22,51 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
         year: '',
         hospital: ''
     });
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setMessage({ type: 'error', text: 'La photo ne doit pas dépasser 5MB' });
+            return;
+        }
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            setMessage({ type: 'error', text: 'Seules les images sont autorisées' });
+            return;
+        }
+
+        setUploadingAvatar(true);
+        setMessage(null);
+
+        try {
+            const updatedProfile = await profiles.uploadAvatar(file);
+            setProfile(updatedProfile);
+
+            // Update localStorage
+            const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+            if (userStr) {
+                const userData = JSON.parse(userStr);
+                userData.profile = { ...userData.profile, avatar: updatedProfile.avatar };
+                if (localStorage.getItem('user')) {
+                    localStorage.setItem('user', JSON.stringify(userData));
+                } else {
+                    sessionStorage.setItem('user', JSON.stringify(userData));
+                }
+            }
+
+            setMessage({ type: 'success', text: 'Photo de profil mise à jour !' });
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (err: any) {
+            console.error('Error uploading avatar:', err);
+            setMessage({ type: 'error', text: 'Erreur lors de l\'upload : ' + err.message });
+        } finally {
+            setUploadingAvatar(false);
+        }
+    };
 
     // MOCKED DATA - Supabase Removed
 
@@ -117,8 +163,41 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
                         <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Mon Profil</h1>
                         <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Gérez vos informations personnelles et professionnelles</p>
                     </div>
-                    <div className={`size-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary`}>
-                        <span className="material-symbols-outlined text-4xl filled">person</span>
+                    {/* Avatar Upload */}
+                    <div className="relative group">
+                        <input
+                            type="file"
+                            id="avatar-upload"
+                            accept="image/*"
+                            onChange={handleAvatarUpload}
+                            className="hidden"
+                            disabled={uploadingAvatar}
+                        />
+                        <label
+                            htmlFor="avatar-upload"
+                            className="cursor-pointer block relative"
+                        >
+                            {profile?.avatar ? (
+                                <img
+                                    src={`${import.meta.env.VITE_API_URL || 'https://api-amisrim.jadeoffice.cloud'}${profile.avatar}`}
+                                    alt="Avatar"
+                                    className="size-20 rounded-2xl object-cover border-2 border-primary/20 group-hover:border-primary transition-all"
+                                />
+                            ) : (
+                                <div className="size-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border-2 border-primary/20 group-hover:border-primary transition-all">
+                                    <span className="material-symbols-outlined text-4xl filled">person</span>
+                                </div>
+                            )}
+                            {/* Upload overlay */}
+                            <div className="absolute inset-0 bg-black/50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                {uploadingAvatar ? (
+                                    <span className="material-symbols-outlined text-white animate-spin">progress_activity</span>
+                                ) : (
+                                    <span className="material-symbols-outlined text-white text-2xl">photo_camera</span>
+                                )}
+                            </div>
+                        </label>
+                        <p className="text-[8px] text-slate-500 text-center mt-2 font-bold uppercase tracking-widest">Cliquez pour modifier</p>
                     </div>
                 </div>
 
