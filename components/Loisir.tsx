@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LeisureEvent, LeisureFund } from '../types';
-import { leisure } from '../services/api';
+import { leisure, storage } from '../services/api';
 
 type EventType = 'voyage' | 'pique-nique' | 'fete';
 type ViewTab = 'explorer' | 'gestion';
@@ -101,7 +101,14 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
       e.preventDefault();
       try {
          // Simplified image handling (URL only for now unless we implement upload properly)
-         const finalImageUrl = newEvent.imageUrl || 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000';
+         let finalImageUrl = newEvent.imageUrl || 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000';
+
+         if (eventImage) {
+            try {
+               const uploadRes = await storage.upload(eventImage);
+               finalImageUrl = uploadRes.url;
+            } catch (e) { console.error("Upload failed", e); alert("Echec upload image"); }
+         }
 
          await leisure.createEvent({
             title: newEvent.title,
@@ -110,7 +117,8 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
             eventDate: newEvent.date ? new Date(newEvent.date).toISOString() : undefined,
             location: newEvent.location,
             costPerPerson: newEvent.costPerPerson ? Number(newEvent.costPerPerson) : undefined,
-            maxParticipants: newEvent.maxParticipants ? Number(newEvent.maxParticipants) : undefined
+            maxParticipants: newEvent.maxParticipants ? Number(newEvent.maxParticipants) : undefined,
+            imageUrl: finalImageUrl
          });
 
          setIsAddEventOpen(false);

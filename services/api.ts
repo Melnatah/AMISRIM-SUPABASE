@@ -233,6 +233,17 @@ export const dashboard = {
     }
 };
 
+export const storage = {
+    upload: async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return fetchAPI('/storage/upload', {
+            method: 'POST',
+            body: formData as any
+        });
+    }
+};
+
 export default {
     auth,
     profiles,
@@ -243,5 +254,6 @@ export default {
     leisure,
     attendance,
     settings,
-    dashboard
+    dashboard,
+    storage
 };

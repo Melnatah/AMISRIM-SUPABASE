@@ -12,8 +12,10 @@ const eventSchema = z.object({
     type: z.enum(['voyage', 'pique-nique', 'fete']).optional(),
     eventDate: z.string().datetime().optional(),
     location: z.string().optional(),
+
     maxParticipants: z.number().int().positive().optional(),
     costPerPerson: z.number().positive().optional(),
+    imageUrl: z.string().optional(),
 });
 
 const participantSchema = z.object({

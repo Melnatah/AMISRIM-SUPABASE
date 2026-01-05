@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, Legend, RadialBarChart, RadialBar,
 } from 'recharts';
-// import { supabase } from '../services/supabase'; // Removed Supabase
+import { dashboard, contributions as contributionsAPI, leisure, profiles, education, sites as sitesAPI, attendance } from '../services/api';
 
 const COLORS = ['#0d59f2', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
@@ -60,53 +60,82 @@ const Statistics: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      setLoading(true);
+      // Parallel fetch for verify robust performance
+      const [
+        allContribs,
+        leisureContribs,
+        allEvents,
+        allProfiles,
+        allModules,
+        allFiles,
+        allSites
+      ] = await Promise.all([
+        contributionsAPI.getAll().catch(() => []),
+        leisure.getContributions().catch(() => []),
+        leisure.getEvents().catch(() => []),
+        profiles.getAll().catch(() => []),
+        education.getModules().catch(() => []),
+        education.getFiles().catch(() => []),
+        sitesAPI.getAll().catch(() => [])
+      ]);
 
-      // MOCKED DATA - Supabase Removed
-      const contribs: any[] = [];
-      const leisureContribs: any[] = [];
-      const events: any[] = [];
-      const participants: any[] = [];
-      const attendance: any[] = [];
-      const profiles: any[] = [];
-      const filesData: any[] = [];
+      const totalCommune = (allContribs || []).reduce((acc: number, c: any) => acc + Number(c.amount), 0);
+      const totalLeisure = (leisureContribs || []).reduce((acc: number, c: any) => acc + Number(c.amount), 0);
 
-      const totalCommune = 0;
-      const totalLeisure = 0;
-      const fileCount = 0;
-      const moduleCount = 0;
-      const siteCountRes = 0;
-      const approvedProfiles: any[] = [];
+      const memberCount = (allProfiles || []).length;
+      const docCount = (allFiles || []).length;
+      const staffCount = (allModules || []).length;
+      const siteCount = (allSites || []).length;
+      const activeResidents = (allProfiles || []).filter((p: any) => p.status === 'approved' || p.role === 'resident').length;
 
+      // Charts Data Construction
       const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+      const currentYear = new Date().getFullYear();
 
-      const monthlyFinancial = monthNames.map((name) => ({ month: name, commune: 0, loisirs: 0 }));
-      const monthlyAcademic = monthNames.map((name) => ({ month: name, presentations: 0, documents: 0 }));
-      const sitesChartData: any[] = [];
+      const monthlyFinancial = monthNames.map((name, index) => {
+        return { month: name, commune: 0, loisirs: 0 };
+      });
+
+      // Fill financial chart with real data
+      (allContribs || []).forEach((c: any) => {
+        const d = new Date(c.createdAt || Date.now());
+        if (d.getFullYear() === currentYear) monthlyFinancial[d.getMonth()].commune += Number(c.amount);
+      });
+      (leisureContribs || []).forEach((c: any) => {
+        const d = new Date(c.createdAt || Date.now());
+        if (d.getFullYear() === currentYear) monthlyFinancial[d.getMonth()].loisirs += Number(c.amount);
+      });
+
+      // Events Stats
+      const totalEvents = (allEvents || []).length;
+      const totalParticipants = (allEvents || []).reduce((acc: number, e: any) => acc + (e.participants?.length || 0), 0);
+      const eventsByType = [
+        { name: 'Voyage', value: (allEvents || []).filter((e: any) => e.type === 'voyage').length, fill: '#0d59f2' },
+        { name: 'Pique-nique', value: (allEvents || []).filter((e: any) => e.type === 'pique-nique').length, fill: '#10b981' },
+        { name: 'Fête', value: (allEvents || []).filter((e: any) => e.type === 'fete').length, fill: '#f59e0b' }
+      ];
+
+      // Sites Chart
+      const sitesChartData = (allSites || []).map((s: any) => ({
+        name: s.name || 'Site',
+        occupes: 1,
+        capacite: 5
+      }));
 
       setDbStats({
         totalFinance: totalCommune,
         leisureFinance: totalLeisure,
-        memberCount: 0,
-        docCount: fileCount || 0,
-        staffCount: moduleCount || 0,
-        siteCount: siteCountRes || 0,
-        activeResidents: approvedProfiles.length,
+        memberCount,
+        docCount,
+        staffCount,
+        siteCount,
+        activeResidents,
         financialChart: monthlyFinancial,
-        academicChart: monthlyAcademic,
+        academicChart: [],
         sitesChart: sitesChartData,
-        activitiesChart: [],
-        attendanceStats: {
-          staff: 0,
-          epu: 0,
-          diu: 0,
-          stage: 0
-        },
-        eventStats: {
-          total: 0,
-          participants: 0,
-          byType: []
-        }
+        activitiesChart: (allEvents || []).map((e: any) => ({ name: e.title, inscrits: e.participants?.length || 0, max: e.maxParticipants || 100 })),
+        attendanceStats: { staff: 0, epu: 0, diu: 0, stage: 0 },
+        eventStats: { total: totalEvents, participants: totalParticipants, byType: eventsByType }
       });
 
     } catch (e) {
@@ -118,6 +147,8 @@ const Statistics: React.FC = () => {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleDownloadReport = () => {
