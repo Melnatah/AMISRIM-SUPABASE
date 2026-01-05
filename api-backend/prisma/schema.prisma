@@ -32,6 +32,7 @@ model Profile {
   year       String?
   hospital   String?
   phone      String?
+  avatar     String?
   siteId     String?  @map("site_id")
   status     String   @default("approved")
   createdAt  DateTime @default(now()) @map("created_at")

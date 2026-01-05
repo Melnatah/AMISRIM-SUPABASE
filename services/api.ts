@@ -77,6 +77,23 @@ export const auth = {
 export const profiles = {
     getMe: () => fetchAPI('/profiles/me'),
     updateMe: (data: Partial<Profile>) => fetchAPI('/profiles/me', { method: 'PUT', body: JSON.stringify(data) }),
+    uploadAvatar: async (file: File) => {
+        const formData = new FormData();
+        formData.append('avatar', file);
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const response = await fetch(`${API_URL}/profiles/me/avatar`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Upload failed');
+        }
+        return response.json();
+    },
     getAll: (role?: string) => fetchAPI(`/profiles${role ? `?role=${role}` : ''}`),
     getById: (id: string) => fetchAPI(`/profiles/${id}`),
     updateStatus: (id: string, status: string) => fetchAPI(`/profiles/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }),

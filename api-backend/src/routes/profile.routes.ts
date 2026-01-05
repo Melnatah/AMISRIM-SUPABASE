@@ -1,10 +1,43 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 const router = Router();
+
+// Configure multer for avatar uploads
+const avatarStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const avatarUpload = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|gif|webp/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        if (extname && mimetype) {
+            cb(null, true);
+        } else {
+            cb(new Error('Seules les images (JPEG, PNG, GIF, WebP) sont autorisées'));
+        }
+    }
+});
 
 const updateProfileSchema = z.object({
     firstName: z.string().optional(),
@@ -12,6 +45,7 @@ const updateProfileSchema = z.object({
     phone: z.string().optional(),
     year: z.string().optional(),
     hospital: z.string().optional(),
+    avatar: z.string().optional(),
 });
 
 // GET /api/profiles - Get all profiles (authenticated users)
@@ -27,6 +61,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
                 year: true,
                 hospital: true,
                 phone: true,
+                avatar: true,
                 status: true,
                 createdAt: true,
             },
@@ -97,6 +132,44 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response, next) =
         if (!profile) {
             throw new AppError('Profile not found', 404);
         }
+
+        res.json(profile);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// POST /api/profiles/me/avatar - Upload avatar for current user
+router.post('/me/avatar', authenticate, avatarUpload.single('avatar'), async (req: AuthRequest, res: Response, next) => {
+    try {
+        if (!req.user) {
+            throw new AppError('User not authenticated', 401);
+        }
+
+        if (!req.file) {
+            throw new AppError('No file uploaded', 400);
+        }
+
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+        // Update profile with new avatar URL
+        const profile = await prisma.profile.update({
+            where: { id: req.user.id },
+            data: { avatar: avatarUrl },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+                year: true,
+                hospital: true,
+                phone: true,
+                avatar: true,
+                status: true,
+                updatedAt: true,
+            },
+        });
 
         res.json(profile);
     } catch (error) {
