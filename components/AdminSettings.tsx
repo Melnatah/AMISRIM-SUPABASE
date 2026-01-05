@@ -14,6 +14,7 @@ interface PendingUser {
 
 interface ApprovedUser extends PendingUser {
   role: string;
+  status: 'approved' | 'pending' | 'rejected';
 }
 
 const AdminSettings: React.FC = () => {
@@ -29,6 +30,9 @@ const AdminSettings: React.FC = () => {
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [allContributions, setAllContributions] = useState<any[]>([]);
   const [pendingAttendance, setPendingAttendance] = useState<any[]>([]);
+
+  // User filter state (new)
+  const [userFilter, setUserFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
 
   // Approval modal state
   const [approvalModal, setApprovalModal] = useState<{ isOpen: boolean; user: PendingUser | null; selectedRole: 'resident' | 'admin' }>({
@@ -77,18 +81,20 @@ const AdminSettings: React.FC = () => {
   const fetchApprovedUsers = async () => {
     try {
       const data = await profiles.getAll();
-      const approved = data.filter((u: any) => u.status === 'approved');
-      setApprovedUsers(approved.map((u: any) => ({
+      // Fetch ALL users (not just approved)
+      const allUsers = data.map((u: any) => ({
         id: u.id,
         name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Sans nom',
         email: u.email || '',
         hospital: u.hospital || 'Non spécifié',
         year: u.year ? `${u.year}ème année` : 'Non spécifié',
         date: u.createdAt ? new Date(u.createdAt).toLocaleDateString('fr-FR') : '',
-        role: u.role || 'resident'
-      })));
+        role: u.role || 'resident',
+        status: u.status || 'approved' // Add status field
+      }));
+      setApprovedUsers(allUsers);
     } catch (e) {
-      console.error('Error fetching approved users:', e);
+      console.error('Error fetching users:', e);
     }
   };
 
@@ -573,14 +579,14 @@ const AdminSettings: React.FC = () => {
               </div>
 
               <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8 md:p-12 shadow-2xl">
-                <div className="flex justify-between items-center mb-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                   <h3 className="text-white font-black text-xl uppercase tracking-tight flex items-center gap-3">
                     <span className="material-symbols-outlined text-primary">group</span>
-                    Utilisateurs Actifs
+                    Gestion des Utilisateurs
                   </h3>
                   <div className="flex items-center gap-4">
                     <span className="px-4 py-1.5 rounded-full bg-slate-500/10 text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                      {approvedUsers.length} Membre{approvedUsers.length > 1 ? 's' : ''}
+                      {approvedUsers.filter(u => userFilter === 'all' || u.status === userFilter).length} Utilisateur{approvedUsers.filter(u => userFilter === 'all' || u.status === userFilter).length > 1 ? 's' : ''}
                     </span>
                     <button
                       onClick={() => setAddUserModal(true)}
@@ -591,34 +597,74 @@ const AdminSettings: React.FC = () => {
                     </button>
                   </div>
                 </div>
+
+                {/* Filter Tabs */}
+                <div className="flex gap-2 p-1 bg-black/30 rounded-xl border border-white/5 mb-8 overflow-x-auto hide-scrollbar">
+                  <button
+                    onClick={() => setUserFilter('all')}
+                    className={`flex-1 min-w-[100px] py-3 px-4 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${userFilter === 'all' ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                  >
+                    Tous ({approvedUsers.length})
+                  </button>
+                  <button
+                    onClick={() => setUserFilter('approved')}
+                    className={`flex-1 min-w-[100px] py-3 px-4 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${userFilter === 'approved' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                  >
+                    Actifs ({approvedUsers.filter(u => u.status === 'approved').length})
+                  </button>
+                  <button
+                    onClick={() => setUserFilter('pending')}
+                    className={`flex-1 min-w-[100px] py-3 px-4 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${userFilter === 'pending' ? 'bg-amber-500 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                  >
+                    En attente ({approvedUsers.filter(u => u.status === 'pending').length})
+                  </button>
+                  <button
+                    onClick={() => setUserFilter('rejected')}
+                    className={`flex-1 min-w-[100px] py-3 px-4 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${userFilter === 'rejected' ? 'bg-red-500 text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}
+                  >
+                    Refusés ({approvedUsers.filter(u => u.status === 'rejected').length})
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {approvedUsers.map(user => (
-                    <div key={user.id} className="flex flex-col p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all gap-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-4">
-                          <div className={`size-12 rounded-2xl flex items-center justify-center font-black text-lg ${user.role === 'admin' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-primary/20 text-primary border border-primary/20'}`}>
-                            {user.name.split(' ')[1]?.[0] || user.name[0]}
+                  {approvedUsers
+                    .filter(u => userFilter === 'all' || u.status === userFilter)
+                    .map(user => (
+                      <div key={user.id} className="flex flex-col p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all gap-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-4">
+                            <div className={`size-12 rounded-2xl flex items-center justify-center font-black text-lg ${user.role === 'admin' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-primary/20 text-primary border border-primary/20'}`}>
+                              {user.name.split(' ')[1]?.[0] || user.name[0]}
+                            </div>
+                            <div>
+                              <p className="text-base font-black text-white flex items-center gap-2">
+                                {user.name}
+                                {user.role === 'admin' && <span className="material-symbols-outlined text-[14px] text-amber-500" title="Administrateur">verified_user</span>}
+                              </p>
+                              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{user.hospital} • {user.year}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-base font-black text-white flex items-center gap-2">
-                              {user.name}
-                              {user.role === 'admin' && <span className="material-symbols-outlined text-[14px] text-amber-500" title="Administrateur">verified_user</span>}
-                            </p>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{user.hospital} • {user.year}</p>
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="px-3 py-1 bg-white/5 rounded-lg border border-white/10 text-[10px] font-bold text-slate-400 uppercase">{user.role}</div>
+                            {/* Status Badge */}
+                            <div className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${user.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                              user.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
+                                'bg-red-500/10 text-red-500 border border-red-500/20'
+                              }`}>
+                              {user.status === 'approved' ? '✓ Actif' : user.status === 'pending' ? '⏳ En attente' : '✗ Refusé'}
+                            </div>
                           </div>
                         </div>
-                        <div className="px-3 py-1 bg-white/5 rounded-lg border border-white/10 text-[10px] font-bold text-slate-400 uppercase">{user.role}</div>
+                        <div className="flex gap-2 mt-2 pt-4 border-t border-white/5">
+                          {user.role !== 'admin' ? (
+                            <button onClick={() => handlePromoteUser(user.id)} className="flex-1 py-2 bg-indigo-500/10 text-indigo-400 text-[10px] font-black rounded-xl uppercase hover:bg-indigo-500 hover:text-white transition-all">Promouvoir Admin</button>
+                          ) : (
+                            <button onClick={() => handleDemoteUser(user.id)} className="flex-1 py-2 bg-amber-500/10 text-amber-500 text-[10px] font-black rounded-xl uppercase hover:bg-amber-500 hover:text-white transition-all">Rétrograder</button>
+                          )}
+                          <button onClick={() => handleDeleteUser(user.id, user.name)} className="px-4 py-2 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
+                        </div>
                       </div>
-                      <div className="flex gap-2 mt-2 pt-4 border-t border-white/5">
-                        {user.role !== 'admin' ? (
-                          <button onClick={() => handlePromoteUser(user.id)} className="flex-1 py-2 bg-indigo-500/10 text-indigo-400 text-[10px] font-black rounded-xl uppercase hover:bg-indigo-500 hover:text-white transition-all">Promouvoir Admin</button>
-                        ) : (
-                          <button onClick={() => handleDemoteUser(user.id)} className="flex-1 py-2 bg-amber-500/10 text-amber-500 text-[10px] font-black rounded-xl uppercase hover:bg-amber-500 hover:text-white transition-all">Rétrograder</button>
-                        )}
-                        <button onClick={() => handleDeleteUser(user.id, user.name)} className="px-4 py-2 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             </div>
