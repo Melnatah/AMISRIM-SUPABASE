@@ -49,6 +49,25 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
+  // Theme Logic
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('theme') || 'dark';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
   // Fetch real notifications from API
   const fetchNotifications = async () => {
     try {
@@ -194,6 +213,17 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
           </div>
 
           <div className="flex gap-2 items-center">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl text-slate-500 hover:bg-gray-100 dark:hover:bg-surface-dark transition-all"
+              title={theme === 'dark' ? "Passer en mode clair" : "Passer en mode sombre"}
+            >
+              <span className="material-symbols-outlined text-xl">
+                {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
+
             {/* Notification System */}
             <div className="relative" ref={notificationRef}>
               <button
