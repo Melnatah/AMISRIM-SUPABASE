@@ -8,13 +8,13 @@ import { dashboard, contributions as contributionsAPI, leisure, profiles, educat
 const COLORS = ['#0d59f2', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 const KpiCard = ({ icon, label, value, subValue, color, bg }: any) => (
-  <div className="bg-surface-dark border border-surface-highlight rounded-[2rem] p-6 shadow-xl relative overflow-hidden">
+  <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2rem] p-6 shadow-xl relative overflow-hidden">
     <div className="relative z-10">
       <div className="flex items-center gap-3 mb-6">
         <div className={`size-10 rounded-xl ${bg} ${color} flex items-center justify-center`}><span className="material-symbols-outlined text-xl">{icon}</span></div>
         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
       </div>
-      <p className="text-3xl font-black text-white mb-1">{value}</p>
+      <p className="text-3xl font-black text-slate-900 dark:text-white mb-1">{value}</p>
       <p className={`text-[10px] font-bold ${color} uppercase`}>{subValue}</p>
     </div>
   </div>
@@ -23,7 +23,7 @@ const KpiCard = ({ icon, label, value, subValue, color, bg }: any) => (
 const CategoryBtn = ({ label, active, onClick, icon }: any) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${active ? 'bg-primary text-white shadow-xl' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+    className={`flex items-center gap-3 px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${active ? 'bg-primary text-white shadow-xl' : 'text-slate-500 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'}`}
   >
     <span className="material-symbols-outlined text-lg">{icon}</span>
     {label}
@@ -31,8 +31,8 @@ const CategoryBtn = ({ label, active, onClick, icon }: any) => (
 );
 
 const ChartBox = ({ title, sub, children, className = "" }: any) => (
-  <div className={`bg-surface-dark rounded-[2.5rem] border border-surface-highlight p-8 shadow-2xl flex flex-col min-h-[400px] ${className}`}>
-    <div className="mb-8"><h3 className="text-white font-black text-xl uppercase tracking-tight">{title}</h3><p className="text-slate-500 text-xs">{sub}</p></div>
+  <div className={`bg-white dark:bg-surface-dark rounded-[2.5rem] border border-gray-100 dark:border-surface-highlight p-8 shadow-2xl flex flex-col min-h-[400px] ${className}`}>
+    <div className="mb-8"><h3 className="text-slate-900 dark:text-white font-black text-xl uppercase tracking-tight">{title}</h3><p className="text-slate-500 text-xs">{sub}</p></div>
     <div className="flex-1">{children}</div>
   </div>
 );

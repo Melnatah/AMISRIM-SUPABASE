@@ -228,7 +228,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
          {isAddEventOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-               <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8 w-full max-w-3xl overflow-y-auto max-h-[90vh]">
+               <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] p-8 w-full max-w-3xl overflow-y-auto max-h-[90vh]">
                   <h3 className="text-xl font-black text-white uppercase mb-8">{editingEventId ? 'Modifier l\'événement' : 'Organiser un Événement'}</h3>
                   <form onSubmit={handleCreateEvent} className="space-y-6 text-white text-xs">
                      <div className="grid grid-cols-3 gap-4">
@@ -280,7 +280,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
          {isFundOpen && selectedFund && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-               <div className="bg-surface-dark border border-surface-highlight rounded-[2rem] p-8 w-full max-w-md">
+               <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2rem] p-8 w-full max-w-md">
                   <h3 className="text-white font-black uppercase mb-6">{selectedFund.title}</h3>
                   <input type="number" className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-white mb-4" placeholder="Montant..." value={contributionAmount} onChange={e => setContributionAmount(e.target.value)} />
                   <button onClick={handleContribution} className="w-full py-4 bg-pink-500 text-white rounded-xl font-black uppercase">Confirmer</button>
@@ -292,11 +292,11 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
          <div className="max-w-[1200px] mx-auto w-full space-y-10 pb-20">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                <div>
-                  <h2 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tight">Loisir & Détente</h2>
+                  <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Loisir & Détente</h2>
                   <p className="text-slate-500 text-xs mt-2">Communauté et événements.</p>
                </div>
                {isAdmin && (
-                  <div className="flex bg-surface-dark p-1 rounded-2xl border border-white/5">
+                  <div className="flex bg-white dark:bg-surface-dark p-1 rounded-2xl border border-gray-100 dark:border-white/5">
                      <button onClick={() => setActiveTab('explorer')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase ${activeTab === 'explorer' ? 'bg-primary text-white shadow-lg' : 'text-slate-500'}`}>Exploration</button>
                      <button onClick={() => setActiveTab('gestion')} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase ${activeTab === 'gestion' ? 'bg-amber-500 text-white shadow-lg' : 'text-slate-500'}`}>Gestion</button>
                   </div>
@@ -307,7 +307,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                <div className="space-y-12 animate-in fade-in">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                      {funds.map(f => (
-                        <div key={f.id} className="bg-surface-dark border border-surface-highlight rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                        <div key={f.id} className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-2xl p-6 shadow-xl relative overflow-hidden group">
                            <div className="flex justify-between items-start mb-6">
                               <div className="size-10 rounded-xl bg-pink-500/10 text-pink-500 flex items-center justify-center"><span className="material-symbols-outlined">savings</span></div>
                               <div className="flex gap-2">
@@ -326,7 +326,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                      {filteredEvents.map(e => {
                         const userParticipant = e.participants.find(p => p.profileId === user.id);
                         return (
-                           <div key={e.id} className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden group hover:border-primary/50 transition-all border-transparent">
+                           <div key={e.id} className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] overflow-hidden group hover:border-primary/50 transition-all border-transparent">
                               <div className="relative h-60">
                                  <img src={getImageUrl(e.imageUrl)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
                                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 to-transparent" />
@@ -388,12 +388,12 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
             ) : (
                <div className="space-y-10 animate-in fade-in">
                   {/* Gestion Financière par Activité */}
-                  <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden">
+                  <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] overflow-hidden">
                      <div className="px-10 py-8 border-b border-white/5 bg-background-dark/20 flex justify-between items-center">
-                        <h3 className="text-white font-black text-sm uppercase">Détails Financiers par Activité</h3>
+                        <h3 className="text-slate-900 dark:text-white font-black text-sm uppercase">Détails Financiers par Activité</h3>
                         <div className="flex gap-4">
                            <select
-                              className="bg-black/50 border border-white/5 rounded-xl px-4 py-2 text-[10px] font-black text-white uppercase outline-none"
+                              className="bg-black/50 border border-white/5 rounded-xl px-4 py-2 text-[10px] font-black text-slate-900 dark:text-white uppercase outline-none"
                               value={selectedEventForFinance || ''}
                               onChange={(e) => setSelectedEventForFinance(e.target.value)}
                            >
@@ -421,7 +421,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                                     </div>
                                     <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
                                        <p className="text-[8px] font-black text-slate-500 uppercase mb-2">Objectif (Basé sur max participants)</p>
-                                       <p className="text-2xl font-black text-white">{fund.targetAmount.toLocaleString()} FCFA</p>
+                                       <p className="text-2xl font-black text-slate-900 dark:text-white">{fund.targetAmount.toLocaleString()} FCFA</p>
                                     </div>
                                     <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
                                        <p className="text-[8px] font-black text-slate-500 uppercase mb-2">Taux de recouvrement</p>
@@ -434,10 +434,10 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                               {/* Formulaire ajout manuel */}
                               <div className="lg:col-span-1 space-y-6 bg-black/20 p-8 rounded-3xl border border-white/5">
-                                 <h4 className="text-[10px] font-black text-white uppercase tracking-widest">Enregistrer une cotisation</h4>
+                                 <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest">Enregistrer une cotisation</h4>
                                  <div className="space-y-4">
                                     <select
-                                       className="w-full bg-surface-dark border border-white/10 rounded-xl p-4 text-white text-xs"
+                                       className="w-full bg-surface-dark border border-white/10 rounded-xl p-4 text-slate-900 dark:text-white text-xs"
                                        value={manualContribution.profileId}
                                        onChange={(e) => setManualContribution({ ...manualContribution, profileId: e.target.value })}
                                     >
@@ -449,13 +449,13 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                                     <input
                                        type="number"
                                        placeholder="Montant (FCFA)"
-                                       className="w-full bg-surface-dark border border-white/10 rounded-xl p-4 text-white text-xs"
+                                       className="w-full bg-surface-dark border border-white/10 rounded-xl p-4 text-slate-900 dark:text-white text-xs"
                                        value={manualContribution.amount}
                                        onChange={(e) => setManualContribution({ ...manualContribution, amount: e.target.value })}
                                     />
                                     <button
                                        onClick={addManualContribution}
-                                       className="w-full py-4 bg-emerald-500 text-white rounded-xl font-black uppercase text-[10px] shadow-lg shadow-emerald-500/20"
+                                       className="w-full py-4 bg-emerald-500 text-slate-900 dark:text-white rounded-xl font-black uppercase text-[10px] shadow-lg shadow-emerald-500/20"
                                     >
                                        Ajouter le versement
                                     </button>
@@ -464,9 +464,9 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
                               {/* Liste des versements pour cette activité */}
                               <div className="lg:col-span-2">
-                                 <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-6">Historique des versements</h4>
+                                 <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-widest mb-6">Historique des versements</h4>
                                  <div className="overflow-hidden rounded-2xl border border-white/5">
-                                    <table className="w-full text-left text-xs text-white">
+                                    <table className="w-full text-left text-xs text-slate-900 dark:text-white">
                                        <thead><tr className="bg-white/5 font-black text-[9px] text-slate-500 uppercase"><th className="px-6 py-4">Résident</th><th className="px-6 py-4">Montant</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
                                        <tbody className="divide-y divide-white/5 font-bold">
                                           {(() => {
@@ -503,12 +503,12 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                   </div>
 
                   {/* Gestion des Inscriptions */}
-                  <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden">
+                  <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] overflow-hidden">
                      <div className="px-10 py-8 border-b border-white/5">
-                        <h3 className="text-white font-black text-sm uppercase">Demandes d'inscription en attente</h3>
+                        <h3 className="text-slate-900 dark:text-white font-black text-sm uppercase">Demandes d'inscription en attente</h3>
                      </div>
                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs text-white">
+                        <table className="w-full text-left text-xs text-slate-900 dark:text-white">
                            <thead><tr className="bg-black/20 font-black text-[9px] text-slate-500 uppercase"><th className="px-10 py-5">Résident</th><th className="px-6 py-5">Activité</th><th className="px-6 py-5">Date Demande</th><th className="px-10 py-5 text-right">Décision</th></tr></thead>
                            <tbody className="divide-y divide-white/5">
                               {events.flatMap(e => e.participants.filter(p => p.status === 'pending').map(p => (
@@ -517,8 +517,8 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                                     <td className="px-6 py-6 uppercase text-primary font-bold">{e.title}</td>
                                     <td className="px-6 py-6 text-slate-500">N/A</td>
                                     <td className="px-10 py-6 text-right space-x-2">
-                                       <button onClick={() => updateParticipantStatus(p.id, e.id, 'approved')} className="bg-emerald-500/10 text-emerald-500 px-3 py-1.5 rounded-lg font-black uppercase text-[8px] hover:bg-emerald-500 hover:text-white transition-all">Accepter</button>
-                                       <button onClick={() => updateParticipantStatus(p.id, e.id, 'rejected')} className="bg-red-500/10 text-red-500 px-3 py-1.5 rounded-lg font-black uppercase text-[8px] hover:bg-red-500 hover:text-white transition-all">Refuser</button>
+                                       <button onClick={() => updateParticipantStatus(p.id, e.id, 'approved')} className="bg-emerald-500/10 text-emerald-500 px-3 py-1.5 rounded-lg font-black uppercase text-[8px] hover:bg-emerald-500 hover:text-slate-900 dark:text-white transition-all">Accepter</button>
+                                       <button onClick={() => updateParticipantStatus(p.id, e.id, 'rejected')} className="bg-red-500/10 text-red-500 px-3 py-1.5 rounded-lg font-black uppercase text-[8px] hover:bg-red-500 hover:text-slate-900 dark:text-white transition-all">Refuser</button>
                                     </td>
                                  </tr>
                               )))}
@@ -533,15 +533,15 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                   {/* Liste des Participants Approuvés */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                      {events.filter(e => e.participants.some(p => p.status === 'approved')).map(e => (
-                        <div key={e.id} className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8">
+                        <div key={e.id} className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] p-8">
                            <div className="flex justify-between items-center mb-6">
-                              <h4 className="text-xs font-black text-white uppercase">{e.title} (Participants {e.registeredParticipants})</h4>
+                              <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase">{e.title} (Participants {e.registeredParticipants})</h4>
                               <span className="text-[10px] font-black text-primary uppercase">{e.type}</span>
                            </div>
                            <div className="space-y-2">
                               {e.participants.filter(p => p.status === 'approved').map(p => (
                                  <div key={p.id} className="flex justify-between items-center p-4 bg-white/5 rounded-2xl border border-white/5">
-                                    <span className="text-[10px] font-black text-white uppercase">{p.firstName} {p.lastName}</span>
+                                    <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase">{p.firstName} {p.lastName}</span>
                                     <span className="material-symbols-outlined text-emerald-500 text-sm">verified</span>
                                  </div>
                               ))}
@@ -551,9 +551,9 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                   </div>
 
                   {/* Gestion des Activités */}
-                  <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden">
+                  <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] overflow-hidden">
                      <div className="px-10 py-8 border-b border-white/5 flex justify-between">
-                        <h3 className="text-white font-black text-sm uppercase">Toutes les Activités</h3>
+                        <h3 className="text-slate-900 dark:text-white font-black text-sm uppercase">Toutes les Activités</h3>
                         <button onClick={() => {
                            setEditingEventId(null);
                            setNewEvent({ title: '', type: 'voyage', date: '', location: '', description: '', costPerPerson: '', maxParticipants: '', imageUrl: '' });
@@ -562,7 +562,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                         }} className="text-[10px] font-black text-primary uppercase">+ Ajouter</button>
                      </div>
                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs text-white">
+                        <table className="w-full text-left text-xs text-slate-900 dark:text-white">
                            <thead><tr className="bg-black/20 font-black text-[9px] text-slate-500 uppercase"><th className="px-10 py-5">Événement</th><th className="px-6 py-5">Type</th><th className="px-6 py-5">Inscrits</th><th className="px-10 py-5 text-right">Actions</th></tr></thead>
                            <tbody className="divide-y divide-white/5">
                               {events.map(e => (
@@ -582,12 +582,12 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                   </div>
 
                   {/* Versements Récents */}
-                  <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden">
+                  <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] overflow-hidden">
                      <div className="px-10 py-8 border-b border-white/5 flex justify-between items-center">
-                        <h3 className="text-white font-black text-sm uppercase">Versements (Cajous)</h3>
+                        <h3 className="text-slate-900 dark:text-white font-black text-sm uppercase">Versements (Cajous)</h3>
                      </div>
                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs text-white">
+                        <table className="w-full text-left text-xs text-slate-900 dark:text-white">
                            <thead><tr className="bg-black/20 font-black text-[9px] text-slate-500 uppercase"><th className="px-10 py-5">Résident</th><th className="px-6 py-5">Caisse / Activité</th><th className="px-6 py-5">Montant</th><th className="px-10 py-5 text-right">Actions</th></tr></thead>
                            <tbody className="divide-y divide-white/5">
                               {contributions.map(c => {

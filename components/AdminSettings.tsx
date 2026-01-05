@@ -522,7 +522,7 @@ const AdminSettings: React.FC = () => {
                     type="text"
                     value={newUser.firstName}
                     onChange={e => setNewUser({ ...newUser, firstName: e.target.value })}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                    className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
                     placeholder="Jean"
                   />
                 </div>
@@ -532,7 +532,7 @@ const AdminSettings: React.FC = () => {
                     type="text"
                     value={newUser.lastName}
                     onChange={e => setNewUser({ ...newUser, lastName: e.target.value })}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                    className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
                     placeholder="Dupont"
                   />
                 </div>
@@ -544,7 +544,7 @@ const AdminSettings: React.FC = () => {
                   type="email"
                   value={newUser.email}
                   onChange={e => setNewUser({ ...newUser, email: e.target.value })}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                  className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
                   placeholder="email@exemple.com"
                 />
               </div>
@@ -555,7 +555,7 @@ const AdminSettings: React.FC = () => {
                   type="password"
                   value={newUser.password}
                   onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                  className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
                   placeholder="Minimum 6 caractères"
                   minLength={6}
                 />
@@ -567,7 +567,7 @@ const AdminSettings: React.FC = () => {
                   <select
                     value={newUser.year}
                     onChange={e => setNewUser({ ...newUser, year: e.target.value })}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                    className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
                   >
                     <option value="1">1ère Année</option>
                     <option value="2">2ème Année</option>
@@ -581,7 +581,7 @@ const AdminSettings: React.FC = () => {
                     type="tel"
                     value={newUser.phone}
                     onChange={e => setNewUser({ ...newUser, phone: e.target.value })}
-                    className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                    className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
                     placeholder="+228 00 00 00 00"
                   />
                 </div>
@@ -593,7 +593,7 @@ const AdminSettings: React.FC = () => {
                   type="text"
                   value={newUser.hospital}
                   onChange={e => setNewUser({ ...newUser, hospital: e.target.value })}
-                  className="w-full bg-black/30 border border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
+                  className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-primary"
                   placeholder="CHU Campus"
                 />
               </div>
@@ -654,7 +654,7 @@ const AdminSettings: React.FC = () => {
             <span className="material-symbols-outlined text-sm">security</span>
             <span>Privilèges Administrateur</span>
           </div>
-          <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Configuration Système</h2>
+          <h2 className="text-3xl md:text-5xl font-black text-foreground-light dark:text-foreground-dark uppercase tracking-tighter">Configuration Système</h2>
         </div>
 
         <div className="flex gap-1 bg-surface-dark p-1 rounded-2xl border border-surface-highlight overflow-x-auto hide-scrollbar shadow-2xl">
@@ -761,7 +761,7 @@ const AdminSettings: React.FC = () => {
                       placeholder="Rechercher par nom, email ou hôpital..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-black/30 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white text-sm outline-none focus:border-primary transition-all placeholder:text-slate-600"
+                      className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-xl py-3 pl-12 pr-4 text-white text-sm outline-none focus:border-primary transition-all placeholder:text-slate-600"
                     />
                   </div>
                   <button
@@ -820,7 +820,7 @@ const AdminSettings: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {getFilteredUsers().map(user => (
-                    <div key={user.id} className="flex flex-col p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all gap-4">
+                    <div key={user.id} className="flex flex-col p-6 rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 hover:border-primary/30 transition-all gap-4">
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-4">
                           {/* Checkbox for bulk selection */}
@@ -877,7 +877,7 @@ const AdminSettings: React.FC = () => {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Montant Mensuel (FCFA)</label>
-                    <input type="number" value={monthlyFee} onChange={e => setMonthlyFee(e.target.value)} className="w-full bg-black/30 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm font-bold outline-none focus:border-indigo-500 transition-all" />
+                    <input type="number" value={monthlyFee} onChange={e => setMonthlyFee(e.target.value)} className="w-full bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-2xl py-4 px-6 text-white text-sm font-bold outline-none focus:border-indigo-500 transition-all" />
                   </div>
                   <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/10">
                     <p className="text-[10px] text-indigo-300 font-medium leading-relaxed italic">Ce montant sera utilisé comme référence pour le calcul automatique des dettes et des balances dans le module Cotisation.</p>
@@ -888,13 +888,13 @@ const AdminSettings: React.FC = () => {
 
               <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8 shadow-2xl flex flex-col">
                 <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-white font-black text-sm uppercase tracking-widest flex items-center gap-2">
+                  <h3 className="text-slate-900 dark:text-white font-black text-sm uppercase tracking-widest flex items-center gap-2">
                     <span className="material-symbols-outlined text-emerald-500">history</span>
                     Dernières Transactions
                   </h3>
                   <button
                     onClick={handleExportContributions}
-                    className="px-3 py-2 bg-emerald-500/10 text-emerald-500 text-[9px] font-black rounded-lg uppercase flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all"
+                    className="px-3 py-2 bg-emerald-500/10 text-emerald-500 text-[9px] font-black rounded-lg uppercase flex items-center gap-2 hover:bg-emerald-500 hover:text-slate-900 dark:text-white transition-all"
                   >
                     <span className="material-symbols-outlined text-xs">download</span>
                     Export
@@ -913,12 +913,12 @@ const AdminSettings: React.FC = () => {
                       {allContributions.map(c => (
                         <tr key={c.id} className="group hover:bg-white/5">
                           <td className="py-4 px-2">
-                            <p className="text-[10px] font-bold text-white truncate max-w-[100px]">{c.contributor_name}</p>
+                            <p className="text-[10px] font-bold text-slate-900 dark:text-white truncate max-w-[100px]">{c.contributor_name}</p>
                             <p className="text-[7px] text-slate-500 uppercase">{c.month}</p>
                           </td>
                           <td className="py-4 px-2 text-right text-[10px] font-black text-emerald-500">{c.amount.toLocaleString()}</td>
                           <td className="py-4 px-2 text-right">
-                            <button onClick={() => deleteContribution(c.id)} className="size-7 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all mx-auto mr-0"><span className="material-symbols-outlined text-xs">delete</span></button>
+                            <button onClick={() => deleteContribution(c.id)} className="size-7 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-slate-900 dark:text-white transition-all mx-auto mr-0"><span className="material-symbols-outlined text-xs">delete</span></button>
                           </td>
                         </tr>
                       ))}
@@ -930,9 +930,9 @@ const AdminSettings: React.FC = () => {
           )}
 
           {activeTab === 'attendance' && (
-            <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8 md:p-12 shadow-2xl">
+            <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] p-8 md:p-12 shadow-2xl">
               <div className="flex justify-between items-center mb-10">
-                <h3 className="text-white font-black text-xl uppercase tracking-tight flex items-center gap-3">
+                <h3 className="text-slate-900 dark:text-white font-black text-xl uppercase tracking-tight flex items-center gap-3">
                   <span className="material-symbols-outlined text-primary">how_to_reg</span>
                   Émargements à Valider
                 </h3>
@@ -942,7 +942,7 @@ const AdminSettings: React.FC = () => {
                   </span>
                   <button
                     onClick={handleExportAttendance}
-                    className="px-4 py-2 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded-xl uppercase flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all"
+                    className="px-4 py-2 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded-xl uppercase flex items-center gap-2 hover:bg-emerald-500 hover:text-slate-900 dark:text-white transition-all"
                   >
                     <span className="material-symbols-outlined text-sm">download</span>
                     Exporter CSV
@@ -952,7 +952,7 @@ const AdminSettings: React.FC = () => {
 
               <div className="space-y-4">
                 {pendingAttendance.length > 0 ? pendingAttendance.map((att: any) => (
-                  <div key={att.id} className="flex flex-col md:flex-row md:items-center justify-between p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all gap-6">
+                  <div key={att.id} className="flex flex-col md:flex-row md:items-center justify-between p-6 rounded-3xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/5 hover:border-primary/30 transition-all gap-6">
                     <div className="flex items-center gap-5">
                       <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                         <span className="material-symbols-outlined text-2xl">
@@ -960,7 +960,7 @@ const AdminSettings: React.FC = () => {
                         </span>
                       </div>
                       <div>
-                        <p className="text-lg font-black text-white">{att.profile?.firstName} {att.profile?.lastName}</p>
+                        <p className="text-lg font-black text-slate-900 dark:text-white">{att.profile?.firstName} {att.profile?.lastName}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-primary text-[10px] font-black uppercase tracking-widest">{att.itemType}</span>
                           <span className="text-slate-500 text-[10px] font-bold uppercase">•</span>
@@ -971,10 +971,10 @@ const AdminSettings: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={() => handleAttendanceAction(att.id, 'confirmed')} className="flex-1 md:flex-none px-6 py-3 bg-emerald-500 text-white text-[10px] font-black rounded-xl uppercase shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all flex items-center gap-2 justify-center">
+                      <button onClick={() => handleAttendanceAction(att.id, 'confirmed')} className="flex-1 md:flex-none px-6 py-3 bg-emerald-500 text-slate-900 dark:text-white text-[10px] font-black rounded-xl uppercase shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all flex items-center gap-2 justify-center">
                         <span className="material-symbols-outlined text-sm">done</span> Valider
                       </button>
-                      <button onClick={() => handleAttendanceAction(att.id, 'rejected')} className="flex-1 md:flex-none px-6 py-3 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-white transition-all flex items-center gap-2 justify-center">
+                      <button onClick={() => handleAttendanceAction(att.id, 'rejected')} className="flex-1 md:flex-none px-6 py-3 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-slate-900 dark:text-white transition-all flex items-center gap-2 justify-center">
                         <span className="material-symbols-outlined text-sm">close</span> Rejeter
                       </button>
                     </div>
@@ -990,15 +990,15 @@ const AdminSettings: React.FC = () => {
           )}
 
           {activeTab === 'broadcast' && (
-            <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-10 md:p-14 shadow-2xl">
+            <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] p-10 md:p-14 shadow-2xl">
               <div className="max-w-2xl mx-auto space-y-8">
                 <div className="text-center space-y-3">
                   <div className="size-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-6"><span className="material-symbols-outlined text-4xl">campaign</span></div>
-                  <h3 className="text-2xl font-black text-white uppercase tracking-tight">Flash Info Global</h3>
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Flash Info Global</h3>
                   <p className="text-slate-500 text-sm">Envoyez une notification instantanée qui apparaîtra sur le dashboard de tous les résidents connectés.</p>
                 </div>
-                <textarea value={broadcastMsg} onChange={e => setBroadcastMsg(e.target.value)} placeholder="Écrivez votre message d'urgence ou d'information ici..." className="w-full h-40 bg-black/30 border border-white/10 rounded-3xl p-6 text-white text-sm outline-none focus:border-amber-500 transition-all resize-none" />
-                <button onClick={handleSendBroadcast} className="w-full py-5 bg-amber-500 text-white font-black rounded-2xl text-[10px] uppercase shadow-xl shadow-amber-500/20 transition-all">Diffuser le message</button>
+                <textarea value={broadcastMsg} onChange={e => setBroadcastMsg(e.target.value)} placeholder="Écrivez votre message d'urgence ou d'information ici..." className="w-full h-40 bg-gray-100 dark:bg-black/30 border border-gray-200 dark:border-white/10 rounded-3xl p-6 text-slate-900 dark:text-white text-sm outline-none focus:border-amber-500 transition-all resize-none" />
+                <button onClick={handleSendBroadcast} className="w-full py-5 bg-amber-500 text-slate-900 dark:text-white font-black rounded-2xl text-[10px] uppercase shadow-xl shadow-amber-500/20 transition-all">Diffuser le message</button>
               </div>
             </div>
           )}
@@ -1006,13 +1006,13 @@ const AdminSettings: React.FC = () => {
           {activeTab === 'system' && (
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-10 shadow-2xl">
-                  <h3 className="text-white font-black text-sm uppercase tracking-widest mb-8 flex items-center gap-2"><span className="material-symbols-outlined text-primary">dataset</span>Passerelle PACS</h3>
-                  <input type="text" value={pacsUrl} onChange={(e) => setPacsUrl(e.target.value)} placeholder="https://pacs.hopital.tg/viewer" className="w-full bg-black/30 border border-white/10 rounded-2xl py-4 px-6 text-white text-sm outline-none mb-6" />
-                  <button onClick={handleSavePacs} className="w-full py-4.5 bg-primary text-white font-black rounded-2xl text-[10px] uppercase">Mettre à jour le lien</button>
+                <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] p-10 shadow-2xl">
+                  <h3 className="text-slate-900 dark:text-white font-black text-sm uppercase tracking-widest mb-8 flex items-center gap-2"><span className="material-symbols-outlined text-primary">dataset</span>Passerelle PACS</h3>
+                  <input type="text" value={pacsUrl} onChange={(e) => setPacsUrl(e.target.value)} placeholder="https://pacs.hopital.tg/viewer" className="w-full bg-black/30 border border-white/10 rounded-2xl py-4 px-6 text-slate-900 dark:text-white text-sm outline-none mb-6" />
+                  <button onClick={handleSavePacs} className="w-full py-4.5 bg-primary text-slate-900 dark:text-white font-black rounded-2xl text-[10px] uppercase">Mettre à jour le lien</button>
                 </div>
-                <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-10 shadow-2xl space-y-6">
-                  <h3 className="text-white font-black text-sm uppercase tracking-widest mb-4">État des Services</h3>
+                <div className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] p-10 shadow-2xl space-y-6">
+                  <h3 className="text-slate-900 dark:text-white font-black text-sm uppercase tracking-widest mb-4">État des Services</h3>
                   {systemStatus.map((s, i) => (
                     <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</span>
@@ -1023,10 +1023,10 @@ const AdminSettings: React.FC = () => {
               </div>
               <div className={`border rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center justify-between gap-8 transition-all ${maintenanceMode ? 'bg-red-500/10 border-red-500' : 'bg-surface-dark border-surface-highlight shadow-2xl'}`}>
                 <div className="flex items-center gap-6">
-                  <div className={`size-16 rounded-2xl flex items-center justify-center ${maintenanceMode ? 'bg-red-500 text-white shadow-lg' : 'bg-red-500/10 text-red-500'}`}><span className="material-symbols-outlined text-4xl">construction</span></div>
-                  <div><h4 className="text-white font-black text-xl uppercase mb-1">Mode Maintenance Global</h4><p className="text-slate-500 text-sm">Bloquer l'accès au portail pour tous les utilisateurs non-administrateurs.</p></div>
+                  <div className={`size-16 rounded-2xl flex items-center justify-center ${maintenanceMode ? 'bg-red-500 text-slate-900 dark:text-white shadow-lg' : 'bg-red-500/10 text-red-500'}`}><span className="material-symbols-outlined text-4xl">construction</span></div>
+                  <div><h4 className="text-slate-900 dark:text-white font-black text-xl uppercase mb-1">Mode Maintenance Global</h4><p className="text-slate-500 text-sm">Bloquer l'accès au portail pour tous les utilisateurs non-administrateurs.</p></div>
                 </div>
-                <button onClick={toggleMaintenance} className={`px-10 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${maintenanceMode ? 'bg-red-500 text-white shadow-xl' : 'bg-white/5 text-red-500 border border-red-500/30'}`}>{maintenanceMode ? 'Désactiver' : 'Activer'}</button>
+                <button onClick={toggleMaintenance} className={`px-10 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${maintenanceMode ? 'bg-red-500 text-slate-900 dark:text-white shadow-xl' : 'bg-white/5 text-red-500 border border-red-500/30'}`}>{maintenanceMode ? 'Désactiver' : 'Activer'}</button>
               </div>
             </div>
           )}
@@ -1037,7 +1037,7 @@ const AdminSettings: React.FC = () => {
 };
 
 const TabBtn = ({ label, icon, active, onClick }: any) => (
-  <button onClick={onClick} className={`flex items-center gap-3 px-8 py-4.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${active ? 'bg-primary text-white shadow-2xl' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>
+  <button onClick={onClick} className={`flex items-center gap-3 px-8 py-4.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${active ? 'bg-primary text-slate-900 dark:text-white shadow-2xl' : 'text-slate-500 hover:text-slate-900 dark:text-white hover:bg-white/5'}`}>
     <span className="material-symbols-outlined text-lg">{icon}</span>{label}
   </button>
 );

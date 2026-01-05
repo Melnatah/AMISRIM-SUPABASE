@@ -284,7 +284,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                   <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Académie AMIS-RIM</h2>
                   <p className="text-slate-500 text-xs md:text-sm mt-1">Gérez et consultez les ressources pédagogiques nationales.</p>
                </div>
-               <div className="flex p-1 bg-surface-dark border border-surface-highlight rounded-2xl overflow-x-auto hide-scrollbar w-full md:w-auto">
+               <div className="flex p-1 bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-2xl overflow-x-auto hide-scrollbar w-full md:w-auto">
                   {(['cours', 'staff', 'epu', 'diu'] as Category[]).map(cat => (
                      <button key={cat} onClick={() => handleCategoryChange(cat)} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${activeCategory === cat ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>{cat}</button>
                   ))}
@@ -306,38 +306,38 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      {curriculum.find(y => y.year === activeYear)?.subjects.length === 0 ? (
-                        <div className="col-span-full p-8 text-center border border-dashed border-white/10 rounded-2xl bg-white/5">
+                        <div className="col-span-full p-8 text-center border border-dashed border-white/10 rounded-2xl bg-gray-100 dark:bg-white/5 boolean">
                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Aucune matière pour cette année</p>
                            {isAdmin && <button onClick={() => openAddModal('subject')} className="mt-4 text-primary text-[10px] font-black uppercase hover:underline">Ajouter une matière</button>}
                         </div>
                      ) : (
                         curriculum.find(y => y.year === activeYear)?.subjects.map(subj => (
-                           <div key={subj.id} className="bg-surface-dark border border-surface-highlight rounded-[2rem] p-6">
+                           <div key={subj.id} className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2rem] p-6">
                               <div className="flex justify-between items-start mb-4">
                                  <div className="flex-1">
-                                    <h4 className="text-white font-black text-sm uppercase">{subj.name}</h4>
-                                    <span className="bg-white/5 text-slate-500 text-[8px] font-black px-2 py-1 rounded inline-block mt-1">{subj.modules.length} Modules</span>
+                                    <h4 className="text-slate-900 dark:text-white font-black text-sm uppercase">{subj.name}</h4>
+                                    <span className="bg-gray-100 dark:bg-white/5 boolean text-slate-500 text-[8px] font-black px-2 py-1 rounded inline-block mt-1">{subj.modules.length} Modules</span>
                                  </div>
                                  {isAdmin && (
                                     <div className="flex gap-1">
-                                       <button onClick={() => openEditModal('subject', subj)} className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">edit</span></button>
-                                       <button onClick={() => handleDeleteSubject(subj.id, subj.name)} className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                       <button onClick={() => openEditModal('subject', subj)} className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-slate-900 dark:text-white transition-all"><span className="material-symbols-outlined text-sm">edit</span></button>
+                                       <button onClick={() => handleDeleteSubject(subj.id, subj.name)} className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-slate-900 dark:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
                                     </div>
                                  )}
                               </div>
-                              <button onClick={() => setSelectedSubjectId(selectedSubjectId === subj.id ? null : subj.id)} className={`w-full py-3 rounded-xl text-[10px] font-black uppercase transition-all ${selectedSubjectId === subj.id ? 'bg-primary text-white' : 'bg-white/5 text-slate-400'}`}>{selectedSubjectId === subj.id ? "Replier" : "Voir les Modules"}</button>
+                              <button onClick={() => setSelectedSubjectId(selectedSubjectId === subj.id ? null : subj.id)} className={`w-full py-3 rounded-xl text-[10px] font-black uppercase transition-all ${selectedSubjectId === subj.id ? 'bg-primary text-slate-900 dark:text-white' : 'bg-gray-100 dark:bg-white/5 boolean text-slate-400'}`}>{selectedSubjectId === subj.id ? "Replier" : "Voir les Modules"}</button>
                               {selectedSubjectId === subj.id && (
                                  <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
                                     {subj.modules.map(mod => (
-                                       <div key={mod.id} className="p-4 rounded-2xl bg-black/30 border border-white/5">
+                                       <div key={mod.id} className="p-4 rounded-2xl bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5">
                                           <div className="flex justify-between items-center mb-2">
                                              <p className="text-xs font-black text-primary uppercase">{mod.name}</p>
                                              <div className="flex items-center gap-2">
                                                 <span className="text-[8px] font-bold text-slate-500">{mod.files.length} fichiers</span>
                                                 {isAdmin && (
                                                    <div className="flex gap-1">
-                                                      <button onClick={() => openAddModal('file', mod.id)} className="text-primary hover:text-white transition-colors" title="Ajouter un fichier"><span className="material-symbols-outlined text-xs">add_circle</span></button>
-                                                      <button onClick={() => openEditModal('module', mod)} className="text-blue-500 hover:text-white transition-colors"><span className="material-symbols-outlined text-xs">edit</span></button>
+                                                      <button onClick={() => openAddModal('file', mod.id)} className="text-primary hover:text-slate-900 dark:text-white transition-colors" title="Ajouter un fichier"><span className="material-symbols-outlined text-xs">add_circle</span></button>
+                                                      <button onClick={() => openEditModal('module', mod)} className="text-blue-500 hover:text-slate-900 dark:text-white transition-colors"><span className="material-symbols-outlined text-xs">edit</span></button>
                                                       <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="text-red-500 transition-colors"><span className="material-symbols-outlined text-xs">delete</span></button>
                                                    </div>
                                                 )}
@@ -348,7 +348,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                                 <div key={f.id} className="flex items-center justify-between py-2 text-[10px] text-slate-400 border-t border-white/5">
                                                    <span className="truncate">{f.name}</span>
                                                    <div className="flex items-center gap-2">
-                                                      <button onClick={() => handleDownload(f.url || '', f.name, f.id)} className="material-symbols-outlined text-sm hover:text-white">download</button>
+                                                      <button onClick={() => handleDownload(f.url || '', f.name, f.id)} className="material-symbols-outlined text-sm hover:text-slate-900 dark:text-white">download</button>
                                                       {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-sm text-red-500">delete</button>}
                                                    </div>
                                                 </div>
@@ -374,24 +374,24 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                      {staffModules.map(mod => (
-                        <div key={mod.id} className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8 shadow-xl flex flex-col">
+                        <div key={mod.id} className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2.5rem] p-8 shadow-xl flex flex-col">
                            <div className="flex justify-between items-start mb-6">
                               <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><span className="material-symbols-outlined text-2xl">menu_book</span></div>
                               {isAdmin && (
                                  <div className="flex gap-1">
-                                    <button onClick={() => openEditModal('module', mod)} className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">edit</span></button>
+                                    <button onClick={() => openEditModal('module', mod)} className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-slate-900 dark:text-white transition-all"><span className="material-symbols-outlined text-sm">edit</span></button>
                                     <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
                                  </div>
                               )}
                            </div>
-                           <h4 className="text-white font-black text-base uppercase mb-2 leading-tight">{mod.name}</h4>
+                           <h4 className="text-slate-900 dark:text-white font-black text-base uppercase mb-2 leading-tight">{mod.name}</h4>
                            <p className="text-slate-500 text-[10px] font-medium mb-6 flex-1">{mod.description || "Présentations et cas cliniques."}</p>
                            <div className="space-y-2">
                               {mod.files.map(f => (
-                                 <div key={f.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 group hover:border-primary/50 transition-all">
+                                 <div key={f.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-100 dark:bg-white/5 boolean border border-white/5 group hover:border-primary/50 transition-all">
                                     <span className="text-[10px] font-bold text-slate-300 truncate">{f.name}</span>
                                     <div className="flex items-center gap-2">
-                                       <button onClick={() => handleDownload(f.url || '', f.name, f.id)} className="material-symbols-outlined text-slate-500 hover:text-white text-base">download</button>
+                                       <button onClick={() => handleDownload(f.url || '', f.name, f.id)} className="material-symbols-outlined text-slate-500 hover:text-slate-900 dark:text-white text-base">download</button>
                                        {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-red-500 text-base">delete</button>}
                                     </div>
                                  </div>
@@ -414,10 +414,10 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                   </div>
                   <div className="space-y-4">
                      {(activeCategory === 'epu' ? epuItems : diuItems).map(item => (
-                        <div key={item.id} className="bg-surface-dark border border-surface-highlight rounded-[2rem] p-8">
+                        <div key={item.id} className="bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight rounded-[2rem] p-8">
                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                               <div className="flex-1">
-                                 <h4 className="text-xl font-black text-white uppercase tracking-tight">{item.name}</h4>
+                                 <h4 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">{item.name}</h4>
                                  <div className="flex items-center gap-3 mt-1">
                                     <p className="text-slate-500 text-[10px] font-medium uppercase tracking-widest">{item.modules.length} modules thématiques</p>
                                     {isAdmin && (
@@ -428,7 +428,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                     )}
                                  </div>
                               </div>
-                              <button onClick={() => setSelectedItemId(selectedItemId === item.id ? null : item.id)} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${selectedItemId === item.id ? 'bg-white text-primary shadow-2xl' : 'bg-primary text-white shadow-xl'}`}>{selectedItemId === item.id ? "Replier" : "Développer l'Item"}</button>
+                              <button onClick={() => setSelectedItemId(selectedItemId === item.id ? null : item.id)} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${selectedItemId === item.id ? 'bg-white text-primary shadow-2xl' : 'bg-primary text-slate-900 dark:text-white shadow-xl'}`}>{selectedItemId === item.id ? "Replier" : "Développer l'Item"}</button>
                            </div>
                            {selectedItemId === item.id && (
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8 animate-in fade-in slide-in-from-top-4">
@@ -438,17 +438,17 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                           <h5 className="text-xs font-black text-primary uppercase">{mod.name}</h5>
                                           {isAdmin && (
                                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                                <button onClick={() => openEditModal('module', mod)} className="size-7 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white"><span className="material-symbols-outlined text-xs">edit</span></button>
-                                                <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="size-7 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white"><span className="material-symbols-outlined text-xs">delete</span></button>
+                                                <button onClick={() => openEditModal('module', mod)} className="size-7 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-slate-900 dark:text-white"><span className="material-symbols-outlined text-xs">edit</span></button>
+                                                <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="size-7 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-slate-900 dark:text-white"><span className="material-symbols-outlined text-xs">delete</span></button>
                                              </div>
                                           )}
                                        </div>
                                        <div className="space-y-2">
                                           {mod.files.map(f => (
-                                             <div key={f.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5">
+                                             <div key={f.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-100 dark:bg-white/5 boolean">
                                                 <span className="text-[10px] font-bold text-slate-400 truncate">{f.name}</span>
                                                 <div className="flex items-center gap-2">
-                                                   <button onClick={() => handleDownload(f.url || '', f.name, f.id)} className="material-symbols-outlined text-sm text-slate-500 hover:text-white">download</button>
+                                                   <button onClick={() => handleDownload(f.url || '', f.name, f.id)} className="material-symbols-outlined text-sm text-slate-500 hover:text-slate-900 dark:text-white">download</button>
                                                    {isAdmin && <button onClick={() => handleDeleteFile(f.id, f.name)} className="material-symbols-outlined text-sm text-red-500">delete</button>}
                                                 </div>
                                              </div>

@@ -164,7 +164,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
                   {isSearching ? 'sync' : 'search'}
                 </span>
                 <input
-                  className="bg-transparent border-none text-xs w-full focus:ring-0 placeholder:text-slate-500 ml-2"
+                  className="bg-transparent border-none text-xs w-full focus:ring-0 placeholder:text-slate-500 ml-2 text-slate-900 dark:text-white"
                   placeholder="Rechercher cours, site, utilisateur..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
