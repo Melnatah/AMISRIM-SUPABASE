@@ -264,6 +264,10 @@ export const storage = {
     }
 };
 
+export const search = {
+    global: (query: string) => fetchAPI(`/search?q=${encodeURIComponent(query)}`)
+};
+
 export default {
     auth,
     profiles,
@@ -275,5 +279,6 @@ export default {
     attendance,
     settings,
     dashboard,
-    storage
+    storage,
+    search
 };

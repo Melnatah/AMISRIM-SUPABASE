@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Site } from '../types';
-import { messages as messagesAPI } from '../services/api';
+import { messages as messagesAPI, search as searchAPI } from '../services/api';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,10 +17,37 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
   const location = useLocation();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Search Logic
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchQuery.length >= 2) {
+        setIsSearching(true);
+        try {
+          const results = await searchAPI.global(searchQuery);
+          setSearchResults(results || []);
+        } catch (error) {
+          console.error(error);
+          setSearchResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
 
   // Fetch real notifications from API
   const fetchNotifications = async () => {
@@ -59,6 +86,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
       }
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
         setIsNotificationOpen(false);
+      }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setSearchResults([]);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -108,10 +138,59 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
               <span className="material-symbols-outlined filled text-xl">medical_services</span>
               <span className="whitespace-nowrap">AMIS RIM</span>
             </div>
-            <label className="hidden md:flex items-center h-10 w-64 rounded-full bg-gray-100 dark:bg-surface-dark border border-gray-200 dark:border-surface-highlight px-4 group focus-within:border-primary/50 transition-all">
-              <span className="material-symbols-outlined text-slate-400 text-sm group-focus-within:text-primary transition-colors">search</span>
-              <input className="bg-transparent border-none text-xs w-full focus:ring-0 placeholder:text-slate-500" placeholder="Rechercher un cours, un site..." />
-            </label>
+            {/* Search Bar */}
+            <div className="relative hidden md:block w-72" ref={searchRef}>
+              <div className="flex items-center h-10 w-full rounded-full bg-gray-100 dark:bg-surface-dark border border-gray-200 dark:border-surface-highlight px-4 group focus-within:border-primary/50 transition-all">
+                <span className={`material-symbols-outlined text-sm transition-colors ${isSearching ? 'text-primary animate-spin' : 'text-slate-400 group-focus-within:text-primary'}`}>
+                  {isSearching ? 'sync' : 'search'}
+                </span>
+                <input
+                  className="bg-transparent border-none text-xs w-full focus:ring-0 placeholder:text-slate-500 ml-2"
+                  placeholder="Rechercher cours, site, utilisateur..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button onClick={() => { setSearchQuery(''); setSearchResults([]); }} className="material-symbols-outlined text-slate-400 text-sm hover:text-red-500">close</button>
+                )}
+              </div>
+
+              {/* Search Results Dropdown */}
+              {(searchResults.length > 0) && (
+                <div className="absolute top-12 left-0 w-full bg-white dark:bg-surface-dark border border-gray-200 dark:border-surface-highlight rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                    {searchResults.map((result, index) => (
+                      <button
+                        key={`${result.type}-${result.id}-${index}`}
+                        onClick={() => {
+                          setSearchResults([]);
+                          setSearchQuery('');
+                          if (result.type === 'site') navigate(`/sites/${result.id}`);
+                          else if (result.type === 'file') window.open(result.url, '_blank');
+                          else if (result.type === 'module') navigate('/education');
+                          else if (result.type === 'user') alert('Profil public bientôt disponible');
+                        }}
+                        className="w-full text-left flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-white/5 border-b border-gray-50 dark:border-white/5 transition-colors group"
+                      >
+                        {result.type === 'user' && result.avatar ? (
+                          <img src={`${import.meta.env.VITE_API_URL || 'https://api-amisrim.jadeoffice.cloud'}${result.avatar}`} className="w-8 h-8 rounded-full object-cover" alt="" />
+                        ) : (
+                          <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${result.type === 'file' ? 'bg-blue-50 text-blue-500' : 'bg-primary/10 text-primary'}`}>
+                            <span className="material-symbols-outlined text-sm">{result.icon}</span>
+                          </div>
+                        )}
+
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-[10px] font-black text-slate-900 dark:text-white truncate uppercase mb-0.5 group-hover:text-primary transition-colors">{result.title}</p>
+                          <p className="text-[9px] text-slate-500 line-clamp-1">{result.subtitle}</p>
+                        </div>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase border border-slate-200 dark:border-white/10 px-1.5 py-0.5 rounded">{result.type}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-2 items-center">

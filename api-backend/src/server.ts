@@ -32,6 +32,7 @@ import settingRoutes from './routes/setting.routes.js';
 import leisureRoutes from './routes/leisure.routes.js';
 import attendanceRoutes from './routes/attendance.routes.js';
 import storageRoutes from './routes/storage.routes.js';
+import searchRoutes from './routes/search.routes.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler.js';
@@ -104,6 +105,7 @@ app.use('/api/settings', settingRoutes);
 app.use('/api/leisure', leisureRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/storage', storageRoutes);
+app.use('/api/search', searchRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
