@@ -50,6 +50,7 @@ model Profile {
   @@index([email])
   @@index([role])
   @@index([siteId])
+  @@index([status])
   @@map("profiles")
 }
 
@@ -138,6 +139,8 @@ model Contribution {
   profile         Profile?  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   
   @@index([profileId])
+  @@index([status])
+  @@index([year])
   @@map("contributions")
 }
 
@@ -226,5 +229,7 @@ model Attendance {
   profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   
   @@index([profileId])
+  @@index([status])
+  @@index([itemType])
   @@map("attendance")
 }

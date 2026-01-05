@@ -2,22 +2,30 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import Education from './components/Education';
-import InternshipSites from './components/InternshipSites';
-import Cotisation from './components/Cotisation';
-import Loisir from './components/Loisir';
-import Statistics from './components/Statistics';
-import Messagerie from './components/Messagerie';
-import DicomViewer from './components/DicomViewer';
-import AdminSettings from './components/AdminSettings';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import SplashScreen from './components/SplashScreen';
-import Profile from './components/Profile';
 import { MOCK_SITES } from './constants';
 import { Site } from './types';
 import { auth, sites as sitesService } from './services/api';
+
+// Lazy loading for optimization
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const Education = React.lazy(() => import('./components/Education'));
+const InternshipSites = React.lazy(() => import('./components/InternshipSites'));
+const Cotisation = React.lazy(() => import('./components/Cotisation'));
+const Loisir = React.lazy(() => import('./components/Loisir'));
+const Statistics = React.lazy(() => import('./components/Statistics'));
+const Messagerie = React.lazy(() => import('./components/Messagerie'));
+const DicomViewer = React.lazy(() => import('./components/DicomViewer'));
+const AdminSettings = React.lazy(() => import('./components/AdminSettings'));
+const Profile = React.lazy(() => import('./components/Profile'));
+
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center h-full w-full">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+  </div>
+);
 
 interface User {
   id: string;
@@ -104,22 +112,24 @@ const App: React.FC = () => {
 
   return (
     <Layout user={user} onLogout={handleLogout} sites={sites}>
-      <Routes>
-        <Route path="/" element={<Dashboard user={user} />} />
-        <Route path="/education/*" element={<Education user={user} />} />
-        <Route path="/education" element={<Education user={user} />} />
-        <Route path="/sites" element={<InternshipSites user={user} />} />
-        <Route path="/sites/:id" element={<InternshipSites user={user} />} />
-        <Route path="/dicom" element={<DicomViewer />} />
-        <Route path="/cotisation" element={<Cotisation user={user} />} />
-        <Route path="/loisir/*" element={<Loisir user={user} />} />
-        <Route path="/loisir" element={<Loisir user={user} />} />
-        <Route path="/statistics" element={<Statistics />} />
-        <Route path="/messagerie" element={<Messagerie user={user} />} />
-        <Route path="/profile" element={<Profile user={user} />} />
-        <Route path="/admin" element={user.role === 'admin' ? <AdminSettings /> : <Navigate to="/" />} />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+      <React.Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<Dashboard user={user} />} />
+          <Route path="/education/*" element={<Education user={user} />} />
+          <Route path="/education" element={<Education user={user} />} />
+          <Route path="/sites" element={<InternshipSites user={user} />} />
+          <Route path="/sites/:id" element={<InternshipSites user={user} />} />
+          <Route path="/dicom" element={<DicomViewer />} />
+          <Route path="/cotisation" element={<Cotisation user={user} />} />
+          <Route path="/loisir/*" element={<Loisir user={user} />} />
+          <Route path="/loisir" element={<Loisir user={user} />} />
+          <Route path="/statistics" element={<Statistics />} />
+          <Route path="/messagerie" element={<Messagerie user={user} />} />
+          <Route path="/profile" element={<Profile user={user} />} />
+          <Route path="/admin" element={user.role === 'admin' ? <AdminSettings /> : <Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </React.Suspense>
     </Layout>
   );
 };

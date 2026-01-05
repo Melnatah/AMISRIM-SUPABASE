@@ -75,8 +75,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(rateLimiter);
 
-// Static files for uploads
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Static files for uploads with strong caching (30 days)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
+    maxAge: '30d',
+    etag: true,
+    lastModified: true
+}));
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
