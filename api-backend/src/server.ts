@@ -7,8 +7,14 @@ import { Server as SocketIOServer } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+
 // Import routes
 import authRoutes from './routes/auth.routes.js';
+
+// Polyfill for BigInt serialization
+// @ts-ignore
+BigInt.prototype.toJSON = function () { return Number(this) }
+
 import profileRoutes from './routes/profile.routes.js';
 import siteRoutes from './routes/site.routes.js';
 import moduleRoutes from './routes/module.routes.js';
