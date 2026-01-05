@@ -134,7 +134,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       <div className="flex flex-col gap-8 max-w-[1400px] mx-auto">
 
         {/* Welcome Header */}
-        <section className="rounded-[2.5rem] bg-surface-dark border border-surface-highlight shadow-xl p-6 md:p-10 relative overflow-hidden">
+        <section className="rounded-[2.5rem] bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight shadow-xl p-6 md:p-10 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
@@ -142,12 +142,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 {user.name.charAt(0)}
               </div>
               <div>
-                <h2 className="text-white text-xl md:text-3xl font-black leading-tight tracking-tight">Bienvenue Dr {profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || user.name : user.name}</h2>
+                <h2 className="text-slate-900 dark:text-white text-xl md:text-3xl font-black leading-tight tracking-tight">Bienvenue Dr {profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || user.name : user.name}</h2>
                 <p className="text-slate-500 text-xs md:text-sm font-medium">Portail National des Résidents en Radiologie</p>
               </div>
             </div>
             <div className="flex gap-2">
-              <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center min-w-[100px]">
+              <div className="bg-gray-50 dark:bg-white/5 boolean border border-gray-200 dark:border-white/10 px-4 py-2 rounded-xl text-center min-w-[100px]">
                 <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Connectés</p>
                 <p className="text-sm md:text-base font-black text-green-400">{userCount}</p>
               </div>
@@ -158,10 +158,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         {/* Attendance System (Émargement) */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Resident Interaction */}
-          <div className={`xl:col-span-2 bg-surface-dark rounded-[2.5rem] border border-surface-highlight p-8 shadow-xl relative overflow-hidden`}>
+          <div className={`xl:col-span-2 bg-white dark:bg-surface-dark rounded-[2.5rem] border border-gray-100 dark:border-surface-highlight p-8 shadow-xl relative overflow-hidden`}>
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h3 className="text-white text-sm font-black uppercase tracking-widest">Émargement Quotidien</h3>
+                <h3 className="text-slate-900 dark:text-white text-sm font-black uppercase tracking-widest">Émargement Quotidien</h3>
                 <p className="text-slate-500 text-[10px] font-bold uppercase mt-1">Déclarez votre présence aux sessions d'aujourd'hui</p>
               </div>
               <div className="size-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
@@ -194,10 +194,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </div>
 
           {/* Personal Attendance Stats Panel - Shown to everyone */}
-          <div className="bg-surface-dark rounded-[2.5rem] border border-primary/30 p-8 shadow-xl animate-in fade-in slide-in-from-right-4">
+          <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-primary/30 p-8 shadow-xl animate-in fade-in slide-in-from-right-4">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-white text-sm font-black uppercase tracking-widest">Mon Statut ({myAttendance.length})</h3>
-              <span className="cursor-pointer size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center material-symbols-outlined text-sm hover:bg-primary hover:text-white transition-colors" onClick={() => fetchData()}>refresh</span>
+              <h3 className="text-slate-900 dark:text-white text-sm font-black uppercase tracking-widest">Mon Statut ({myAttendance.length})</h3>
+              <span className="cursor-pointer size-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center material-symbols-outlined text-sm hover:bg-primary hover:text-slate-900 dark:text-white transition-colors" onClick={() => fetchData()}>refresh</span>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
@@ -233,22 +233,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
         {/* Admin Validation Panel - Only for admins */}
         {isAdmin && pendingAttendance.length > 0 && (
-          <section className="bg-surface-dark rounded-[2.5rem] border border-emerald-500/30 p-8 shadow-xl">
+          <section className="bg-white dark:bg-surface-dark rounded-[2.5rem] border border-emerald-500/30 p-8 shadow-xl">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-white text-sm font-black uppercase tracking-widest">Validations en attente ({pendingAttendance.length})</h3>
+              <h3 className="text-slate-900 dark:text-white text-sm font-black uppercase tracking-widest">Validations en attente ({pendingAttendance.length})</h3>
               <span className="size-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center material-symbols-outlined text-sm">verified_user</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {pendingAttendance.map(att => (
                 <div key={att.id} className="p-4 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between group hover:border-primary/30 transition-all">
                   <div>
-                    <p className="text-white text-xs font-black">{att.profile?.firstName} {att.profile?.lastName}</p>
+                    <p className="text-slate-900 dark:text-white text-xs font-black">{att.profile?.firstName} {att.profile?.lastName}</p>
                     <p className="text-primary text-[10px] font-black uppercase">{att.itemType}</p>
                     <p className="text-slate-500 text-[8px]">{new Date(att.createdAt).toLocaleString('fr-FR')}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => updateAttendanceStatus(att.id, 'confirmed')} className="size-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">done</span></button>
-                    <button onClick={() => updateAttendanceStatus(att.id, 'rejected')} className="size-8 rounded-lg bg-red-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">close</span></button>
+                    <button onClick={() => updateAttendanceStatus(att.id, 'confirmed')} className="size-8 rounded-lg bg-emerald-500 text-slate-900 dark:text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">done</span></button>
+                    <button onClick={() => updateAttendanceStatus(att.id, 'rejected')} className="size-8 rounded-lg bg-red-500 text-slate-900 dark:text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all"><span className="material-symbols-outlined text-sm">close</span></button>
                   </div>
                 </div>
               ))}
@@ -263,12 +263,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               <Link
                 key={idx}
                 to={mod.path}
-                className="group flex flex-col items-center justify-center p-4 md:p-6 rounded-3xl bg-surface-dark border border-surface-highlight hover:border-primary/50 transition-all shadow-lg"
+                className="group flex flex-col items-center justify-center p-4 md:p-6 rounded-3xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-surface-highlight hover:border-primary/50 transition-all shadow-lg"
               >
                 <div className={`size-10 md:size-12 rounded-xl ${mod.bg} ${mod.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
                   <span className="material-symbols-outlined text-xl md:text-2xl">{mod.icon}</span>
                 </div>
-                <h4 className="text-white text-[10px] md:text-xs font-black text-center uppercase tracking-widest">{mod.title}</h4>
+                <h4 className="text-slate-900 dark:text-white text-[10px] md:text-xs font-black text-center uppercase tracking-widest">{mod.title}</h4>
               </Link>
             ))}
           </div>
@@ -276,8 +276,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Activity Chart */}
-          <div className="xl:col-span-2 bg-surface-dark rounded-[2.5rem] border border-surface-highlight shadow-xl p-6 md:p-8 min-h-[300px]">
-            <h3 className="text-white text-sm font-black uppercase tracking-widest mb-6">Activité Académique</h3>
+          <div className="xl:col-span-2 bg-white dark:bg-surface-dark rounded-[2.5rem] border border-gray-100 dark:border-surface-highlight shadow-xl p-6 md:p-8 min-h-[300px]">
+            <h3 className="text-slate-900 dark:text-white text-sm font-black uppercase tracking-widest mb-6">Activité Académique</h3>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData}>
