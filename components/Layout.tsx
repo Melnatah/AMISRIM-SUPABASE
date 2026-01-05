@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Site } from '../types';
-import { MOCK_MESSAGES } from '../constants';
+import { messages as messagesAPI } from '../services/api';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,12 +15,42 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState(MOCK_MESSAGES.filter(m => !m.read));
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const location = useLocation();
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Fetch real notifications from API
+  const fetchNotifications = async () => {
+    try {
+      const data = await messagesAPI.getAll();
+      // Show only the 5 most recent messages
+      const recentMessages = (data || [])
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map((m: any) => ({
+          id: m.id,
+          sender: m.sender || 'Anonyme',
+          subject: m.subject || 'Sujet manquant',
+          content: m.content,
+          timestamp: new Date(m.createdAt).toLocaleDateString() + ' ' + new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          priority: m.priority || 'info',
+          read: false
+        }));
+      setNotifications(recentMessages);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    // Refresh notifications every 2 minutes
+    const interval = setInterval(fetchNotifications, 120000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
