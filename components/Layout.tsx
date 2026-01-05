@@ -295,8 +295,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout, sites }) => {
               >
                 {user.avatar ? (
                   <img
-                    src={`${import.meta.env.VITE_API_URL || 'https://api-amisrim.jadeoffice.cloud'}${user.avatar}`}
-                    alt={user.name}
+                    src={user.avatar.startsWith('http') ? user.avatar : `${(import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '')}${user.avatar}`}
+                    alt=""
                     className="size-8 rounded-lg object-cover shadow-lg border border-gray-200 dark:border-white/10"
                   />
                 ) : (
