@@ -172,6 +172,7 @@ model LeisureEvent {
   location        String?
   maxParticipants Int?      @map("max_participants")
   costPerPerson   Decimal?  @map("cost_per_person")
+  imageUrl        String?   @map("image_url")
   createdBy       String?   @map("created_by")
   createdAt       DateTime  @default(now()) @map("created_at")
   
