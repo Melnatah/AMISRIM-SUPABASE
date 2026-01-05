@@ -50,7 +50,12 @@ const ProfileComponent: React.FC<ProfileProps> = ({ user }) => {
             const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
             if (userStr) {
                 const userData = JSON.parse(userStr);
-                userData.profile = { ...userData.profile, avatar: updatedProfile.avatar };
+                // Merge everything from updatedProfile to ensure we have latest names in correct format (camelCase)
+                userData.profile = {
+                    ...(userData.profile || {}),
+                    ...updatedProfile
+                };
+
                 if (localStorage.getItem('user')) {
                     localStorage.setItem('user', JSON.stringify(userData));
                 } else {
