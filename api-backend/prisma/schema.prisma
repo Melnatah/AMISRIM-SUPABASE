@@ -184,6 +184,9 @@ model LeisureEvent {
   contributions   LeisureContribution[]
   participants    LeisureParticipant[]
   
+  @@index([createdBy])
+  @@index([eventDate])
+  @@index([createdAt(sort: Desc)])
   @@map("leisure_events")
 }
 
@@ -231,5 +234,6 @@ model Attendance {
   @@index([profileId])
   @@index([status])
   @@index([itemType])
+  @@index([createdAt(sort: Desc)])
   @@map("attendance")
 }

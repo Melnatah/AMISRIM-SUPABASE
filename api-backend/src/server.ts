@@ -71,7 +71,18 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
-app.use(compression());
+
+// Optimized compression for 150 concurrent users
+app.use(compression({
+    filter: (req, res) => {
+        // Skip compression if client requests it
+        if (req.headers['x-no-compression']) return false;
+        // Use default compression filter
+        return compression.filter(req, res);
+    },
+    level: 6, // Balance between speed and compression (1=fastest, 9=best compression)
+    threshold: 1024, // Only compress responses > 1KB
+}));
 
 // HTTP request logging (combined format in production, dev format in development)
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
