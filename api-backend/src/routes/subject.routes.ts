@@ -60,6 +60,22 @@ router.post('/', authenticate, requireAdmin, async (req: AuthRequest, res: Respo
     }
 });
 
+// PUT /api/subjects/:id (admin only)
+router.put('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response, next) => {
+    try {
+        const { id } = req.params;
+        const data = subjectSchema.partial().parse(req.body);
+        const subject = await prisma.subject.update({ where: { id }, data });
+        res.json(subject);
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            res.status(400).json({ error: 'Validation error', details: error.errors });
+            return;
+        }
+        next(error);
+    }
+});
+
 // DELETE /api/subjects/:id (admin only)
 router.delete('/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response, next) => {
     try {

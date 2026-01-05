@@ -106,10 +106,12 @@ export const education = {
     },
     getSubjects: () => fetchAPI('/subjects'),
     createSubject: (data: any) => fetchAPI('/subjects', { method: 'POST', body: JSON.stringify(data) }),
+    updateSubject: (id: string, data: any) => fetchAPI(`/subjects/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteSubject: (id: string) => fetchAPI(`/subjects/${id}`, { method: 'DELETE' }),
 
     getModules: (subjectId?: string) => fetchAPI(subjectId ? `/modules?subjectId=${subjectId}` : '/modules'),
     createModule: (data: any) => fetchAPI('/modules', { method: 'POST', body: JSON.stringify(data) }),
+    updateModule: (id: string, data: any) => fetchAPI(`/modules/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteModule: (id: string) => fetchAPI(`/modules/${id}`, { method: 'DELETE' }),
 
     uploadFile: async (file: File, context: { moduleId?: string, subjectId?: string }) => {
@@ -156,6 +158,7 @@ export const contributions = {
 export const leisure = {
     getEvents: () => fetchAPI('/leisure/events'),
     createEvent: (data: any) => fetchAPI('/leisure/events', { method: 'POST', body: JSON.stringify(data) }),
+    updateEvent: (id: string, data: any) => fetchAPI(`/leisure/events/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteEvent: (id: string) => fetchAPI(`/leisure/events/${id}`, { method: 'DELETE' }),
 
     // Join event = create participant with current user

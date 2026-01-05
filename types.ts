@@ -96,6 +96,7 @@ export interface LeisureEvent {
   title: string;
   type: 'voyage' | 'pique-nique' | 'fete';
   date: string;
+  eventDate?: string;
   location: string;
   description: string;
   costPerPerson: number;

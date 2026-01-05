@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Subject, YearCurriculum, Module, AcademicItem } from '../types';
@@ -33,12 +32,16 @@ const Education: React.FC<EducationProps> = ({ user }) => {
    const [subjects, setSubjects] = useState<Subject[]>([]);
    const [modules, setModules] = useState<Module[]>([]);
 
+   // Modal & Form State
    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
    const [addType, setAddType] = useState<'subject' | 'module' | 'item' | 'file'>('subject');
    const [newName, setNewName] = useState('');
    const [selectedFile, setSelectedFile] = useState<File | null>(null);
    const [isUploading, setIsUploading] = useState(false);
    const [targetModuleId, setTargetModuleId] = useState<string | null>(null);
+
+   // Edit Mode State
+   const [editingId, setEditingId] = useState<string | null>(null);
 
    useEffect(() => {
       setSelectedSubjectId(null);
@@ -48,16 +51,12 @@ const Education: React.FC<EducationProps> = ({ user }) => {
    const fetchData = async () => {
       try {
          setLoading(true);
-         console.log('Fetching education data...');
          const [subjData, modData] = await Promise.all([
             education.getSubjects(),
             education.getModules()
          ]);
-         console.log('API Response - Subjects:', subjData);
-         console.log('API Response - Modules:', modData);
-
-         setSubjects(subjData);
-         setModules(modData);
+         setSubjects(subjData || []);
+         setModules(modData || []);
       } catch (e) {
          console.error("Error fetching education data", e);
       } finally {
@@ -67,7 +66,6 @@ const Education: React.FC<EducationProps> = ({ user }) => {
 
    useEffect(() => {
       fetchData();
-      // Realtime subscription removed
    }, []);
 
    const getCurriculum = (): YearCurriculum[] => {
@@ -75,9 +73,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
       return years.map(y => {
          const yearSubjects = subjects
             .filter(s => {
-               // Filtrer par catégorie ('cours' par défaut)
                const isCours = s.category === 'cours' || !s.category;
-               // Comparaison souple pour l'année (au cas où ce serait une string "1")
                // eslint-disable-next-line eqeqeq
                const isYear = s.year == y;
                return isCours && isYear;
@@ -109,14 +105,26 @@ const Education: React.FC<EducationProps> = ({ user }) => {
       await education.uploadFile(file, { moduleId });
    };
 
+   const openAddModal = (type: 'subject' | 'module' | 'item' | 'file', moduleId?: string) => {
+      setAddType(type);
+      setNewName('');
+      setEditingId(null);
+      setSelectedFile(null);
+      if (moduleId) setTargetModuleId(moduleId);
+      setIsAddModalOpen(true);
+   };
 
-   const handleAdd = async () => {
-      if (!isAdmin) {
-         alert("Vous devez être administrateur pour effectuer cette action.");
-         return;
-      }
+   const openEditModal = (type: 'subject' | 'module' | 'item', item: { id: string, name: string }) => {
+      setAddType(type);
+      setNewName(item.name);
+      setEditingId(item.id);
+      setSelectedFile(null);
+      setIsAddModalOpen(true);
+   };
 
-      // Validation des entrées
+   const handleSubmit = async () => {
+      if (!isAdmin) return;
+
       if (addType !== 'file' && !newName.trim()) {
          alert("Veuillez entrer un nom.");
          return;
@@ -129,148 +137,94 @@ const Education: React.FC<EducationProps> = ({ user }) => {
 
       try {
          setIsUploading(true);
-         console.log('=== DÉBUT AJOUT ===');
-         console.log('Type:', addType);
-         console.log('Catégorie:', activeCategory);
-         console.log('Nom:', newName);
 
-         // AJOUT DE MATIÈRE (SUBJECT)
-         if (addType === 'subject' || addType === 'item') {
-            const subjectData: any = {
-               name: newName.trim(),
-               category: activeCategory
-            };
-
-            // Ajouter l'année seulement pour les cours
-            if (activeCategory === 'cours') {
-               subjectData.year = activeYear;
+         // MODE ÉDITION
+         if (editingId) {
+            if (addType === 'subject' || addType === 'item') {
+               await education.updateSubject(editingId, { name: newName.trim() });
+            } else if (addType === 'module') {
+               await education.updateModule(editingId, { name: newName.trim() });
+               // Note: we generally don't utilize file upload during simple rename, but we could add it later
             }
+            alert("Modification réussie !");
+         }
+         // MODE CRÉATION
+         else {
+            // AJOUT DE MATIÈRE (SUBJECT)
+            if (addType === 'subject' || addType === 'item') {
+               const subjectData: any = {
+                  name: newName.trim(),
+                  category: activeCategory
+               };
+               if (activeCategory === 'cours') subjectData.year = activeYear;
+               await education.createSubject(subjectData);
+               alert(`Ajouté avec succès !`);
+            }
+            // AJOUT DE MODULE
+            else if (addType === 'module') {
+               const parentId = activeCategory === 'cours' ? selectedSubjectId : selectedItemId;
+               if (!parentId && activeCategory !== 'staff') {
+                  alert("Veuillez d'abord sélectionner une matière.");
+                  return;
+               }
+               const moduleData: any = {
+                  name: newName.trim(),
+                  category: activeCategory
+               };
+               if (parentId) moduleData.subjectId = parentId;
 
-            console.log('Données subject à envoyer:', subjectData);
-            const result = await education.createSubject(subjectData);
-            console.log('Subject créé:', result);
-            alert(`Matière "${newName}" ajoutée avec succès !`);
+               const result = await education.createModule(moduleData);
+               if (selectedFile) await handleFileUpload(selectedFile, result.id);
+               alert(`Module ajouté avec succès !`);
+            }
+            // AJOUT DE FICHIER
+            else if (addType === 'file') {
+               if (!targetModuleId) return;
+               await handleFileUpload(selectedFile!, targetModuleId);
+               alert(`Fichier ajouté avec succès !`);
+            }
          }
 
-         // AJOUT DE MODULE
-         else if (addType === 'module') {
-            const parentId = activeCategory === 'cours' ? selectedSubjectId : selectedItemId;
-
-            if (!parentId && activeCategory !== 'staff') {
-               alert("Veuillez d'abord sélectionner une matière.");
-               return;
-            }
-
-            const moduleData: any = {
-               name: newName.trim(),
-               category: activeCategory
-            };
-
-            if (parentId) {
-               moduleData.subjectId = parentId;
-            }
-
-            console.log('Données module à envoyer:', moduleData);
-            const result = await education.createModule(moduleData);
-            console.log('Module créé:', result);
-
-            // Si un fichier est sélectionné, l'uploader
-            if (selectedFile) {
-               console.log('Upload du fichier associé...');
-               await handleFileUpload(selectedFile, result.id);
-            }
-
-            alert(`Module "${newName}" ajouté avec succès !`);
-         }
-
-         // AJOUT DE FICHIER
-         else if (addType === 'file') {
-            if (!targetModuleId) {
-               alert("Erreur: Aucun module cible spécifié.");
-               return;
-            }
-
-            console.log('Upload du fichier vers le module:', targetModuleId);
-            await handleFileUpload(selectedFile!, targetModuleId);
-            alert(`Fichier "${selectedFile!.name}" ajouté avec succès !`);
-         }
-
-         // Réinitialiser et rafraîchir
          setIsAddModalOpen(false);
          setNewName('');
          setSelectedFile(null);
          setTargetModuleId(null);
+         setEditingId(null);
          await fetchData();
 
-         console.log('=== AJOUT RÉUSSI ===');
-
       } catch (error: any) {
-         console.error('=== ERREUR LORS DE L\'AJOUT ===');
-         console.error('Error object:', error);
-         console.error('Error message:', error?.message);
-         console.error('Error details:', error?.details);
-
-         let errorMessage = 'Une erreur est survenue';
-
-         if (error?.details) {
-            // Erreur de validation Zod
-            const details = Array.isArray(error.details) ? error.details : [error.details];
-            errorMessage = 'Erreur de validation:\n' + details.map((d: any) =>
-               `- ${d.path?.join('.') || 'champ'}: ${d.message}`
-            ).join('\n');
-         } else if (error?.message) {
-            errorMessage = error.message;
-         } else if (error?.error) {
-            errorMessage = error.error;
-         } else if (typeof error === 'string') {
-            errorMessage = error;
-         }
-
-         alert(`❌ Erreur lors de l'ajout:\n\n${errorMessage}\n\nConsultez la console pour plus de détails.`);
+         console.error('Error:', error);
+         alert(`Erreur: ${error.message || 'Une erreur est survenue'}`);
       } finally {
          setIsUploading(false);
       }
    };
 
-
    const handleDeleteSubject = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      try {
-         await education.deleteSubject(id);
-         fetchData();
-      } catch (e) { alert("Erreur suppression"); }
+      try { await education.deleteSubject(id); fetchData(); } catch (e) { alert("Erreur suppression"); }
    };
 
    const handleDeleteModule = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      try {
-         await education.deleteModule(id);
-         fetchData();
-      } catch (e) { alert("Erreur suppression"); }
+      try { await education.deleteModule(id); fetchData(); } catch (e) { alert("Erreur suppression"); }
    };
 
    const handleDeleteFile = async (id: string, name: string) => {
       if (!isAdmin || !window.confirm(`Supprimer "${name}" ?`)) return;
-      try {
-         await education.deleteFile(id);
-         fetchData();
-      } catch (e) { alert("Erreur suppression"); }
+      try { await education.deleteFile(id); fetchData(); } catch (e) { alert("Erreur suppression"); }
    };
 
    const handleDownload = (url: string, name: string, id?: string) => {
-      // Si on a un ID, on privilégie la route API qui force le bon nom de fichier via Content-Disposition
       if (id) {
          const apiUrl = import.meta.env.VITE_API_URL || 'https://api-amisrim.jadeoffice.cloud';
          const downloadUrl = `${apiUrl}/api/files/${id}/download`;
          window.open(downloadUrl, '_blank');
          return;
       }
-
-      // Robustesse Fallback
       const fullUrl = url.startsWith('/')
          ? `${import.meta.env.VITE_API_URL || 'https://api-amisrim.jadeoffice.cloud'}${url}`
          : url;
-
       const link = document.createElement('a');
       link.href = fullUrl;
       link.download = name;
@@ -280,13 +234,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
       document.body.removeChild(link);
    };
 
-   if (loading) {
-      return (
-         <div className="flex items-center justify-center h-full bg-background-light dark:bg-background-dark">
-            <div className="animate-spin size-10 border-4 border-primary border-t-transparent rounded-full"></div>
-         </div>
-      );
-   }
+   if (loading) return <div className="flex items-center justify-center h-full bg-background-light dark:bg-background-dark"><div className="animate-spin size-10 border-4 border-primary border-t-transparent rounded-full"></div></div>;
 
    const curriculum = getCurriculum();
    const staffModules = getStaffModules();
@@ -299,15 +247,15 @@ const Education: React.FC<EducationProps> = ({ user }) => {
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
                <div className="bg-surface-dark border border-surface-highlight rounded-[2rem] p-8 w-full max-w-sm shadow-2xl">
                   <h3 className="text-sm font-black text-white uppercase mb-6 flex items-center gap-2">
-                     <span className="material-symbols-outlined text-primary">add_circle</span>
-                     Ajouter {addType === 'subject' ? 'Matière' : addType === 'module' ? 'Module' : addType === 'file' ? 'Fichier' : 'Item'}
+                     <span className="material-symbols-outlined text-primary">{editingId ? 'edit' : 'add_circle'}</span>
+                     {editingId ? 'Modifier' : 'Ajouter'} {addType === 'subject' ? 'Matière' : addType === 'module' ? 'Module' : addType === 'file' ? 'Fichier' : 'Item'}
                   </h3>
 
                   {addType !== 'file' && (
                      <input type="text" className="w-full bg-background-dark/50 border border-white/5 rounded-xl py-4 px-4 text-white text-sm mb-4 outline-none" placeholder="Titre..." value={newName} onChange={e => setNewName(e.target.value)} autoFocus />
                   )}
 
-                  {(addType === 'module' || addType === 'file') && (
+                  {(!editingId && (addType === 'module' || addType === 'file')) && (
                      <div className="mb-6">
                         <label className="text-[10px] font-black text-slate-500 uppercase mb-2 block">
                            {addType === 'module' ? 'Fichier (Optionnel)' : 'Sélectionner le fichier'}
@@ -321,8 +269,8 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                   )}
 
                   <div className="flex gap-3">
-                     <button onClick={() => { setIsAddModalOpen(false); setSelectedFile(null); }} className="flex-1 py-3 text-[10px] font-black text-slate-500 uppercase" disabled={isUploading}>Annuler</button>
-                     <button onClick={handleAdd} className="flex-1 py-3 bg-primary text-white text-[10px] font-black rounded-xl uppercase flex items-center justify-center gap-2" disabled={isUploading}>
+                     <button onClick={() => { setIsAddModalOpen(false); setSelectedFile(null); setEditingId(null); }} className="flex-1 py-3 text-[10px] font-black text-slate-500 uppercase" disabled={isUploading}>Annuler</button>
+                     <button onClick={handleSubmit} className="flex-1 py-3 bg-primary text-white text-[10px] font-black rounded-xl uppercase flex items-center justify-center gap-2" disabled={isUploading}>
                         {isUploading ? <div className="size-3 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : 'Confirmer'}
                      </button>
                   </div>
@@ -353,19 +301,14 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                      ))}
                   </div>
                   <div className="flex justify-between items-center">
-                     <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                        Matières de l'année {activeYear}
-                        <button onClick={fetchData} className="p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-primary transition-all" title="Actualiser">
-                           <span className="material-symbols-outlined text-sm">refresh</span>
-                        </button>
-                     </h3>
-                     {isAdmin && <button onClick={() => { setAddType('subject'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Ajouter Matière</button>}
+                     <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">Matières de l'année {activeYear} <button onClick={fetchData} className="p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-primary transition-all"><span className="material-symbols-outlined text-sm">refresh</span></button></h3>
+                     {isAdmin && <button onClick={() => openAddModal('subject')} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Ajouter Matière</button>}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      {curriculum.find(y => y.year === activeYear)?.subjects.length === 0 ? (
                         <div className="col-span-full p-8 text-center border border-dashed border-white/10 rounded-2xl bg-white/5">
                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Aucune matière pour cette année</p>
-                           {isAdmin && <button onClick={() => { setAddType('subject'); setIsAddModalOpen(true); }} className="mt-4 text-primary text-[10px] font-black uppercase hover:underline">Ajouter une matière</button>}
+                           {isAdmin && <button onClick={() => openAddModal('subject')} className="mt-4 text-primary text-[10px] font-black uppercase hover:underline">Ajouter une matière</button>}
                         </div>
                      ) : (
                         curriculum.find(y => y.year === activeYear)?.subjects.map(subj => (
@@ -375,7 +318,12 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                     <h4 className="text-white font-black text-sm uppercase">{subj.name}</h4>
                                     <span className="bg-white/5 text-slate-500 text-[8px] font-black px-2 py-1 rounded inline-block mt-1">{subj.modules.length} Modules</span>
                                  </div>
-                                 {isAdmin && <button onClick={() => handleDeleteSubject(subj.id, subj.name)} className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>}
+                                 {isAdmin && (
+                                    <div className="flex gap-1">
+                                       <button onClick={() => openEditModal('subject', subj)} className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">edit</span></button>
+                                       <button onClick={() => handleDeleteSubject(subj.id, subj.name)} className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                    </div>
+                                 )}
                               </div>
                               <button onClick={() => setSelectedSubjectId(selectedSubjectId === subj.id ? null : subj.id)} className={`w-full py-3 rounded-xl text-[10px] font-black uppercase transition-all ${selectedSubjectId === subj.id ? 'bg-primary text-white' : 'bg-white/5 text-slate-400'}`}>{selectedSubjectId === subj.id ? "Replier" : "Voir les Modules"}</button>
                               {selectedSubjectId === subj.id && (
@@ -388,7 +336,8 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                                 <span className="text-[8px] font-bold text-slate-500">{mod.files.length} fichiers</span>
                                                 {isAdmin && (
                                                    <div className="flex gap-1">
-                                                      <button onClick={() => { setTargetModuleId(mod.id); setAddType('file'); setIsAddModalOpen(true); }} className="text-primary hover:text-white transition-colors" title="Ajouter un fichier"><span className="material-symbols-outlined text-xs">add_circle</span></button>
+                                                      <button onClick={() => openAddModal('file', mod.id)} className="text-primary hover:text-white transition-colors" title="Ajouter un fichier"><span className="material-symbols-outlined text-xs">add_circle</span></button>
+                                                      <button onClick={() => openEditModal('module', mod)} className="text-blue-500 hover:text-white transition-colors"><span className="material-symbols-outlined text-xs">edit</span></button>
                                                       <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="text-red-500 transition-colors"><span className="material-symbols-outlined text-xs">delete</span></button>
                                                    </div>
                                                 )}
@@ -407,7 +356,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                           </div>
                                        </div>
                                     ))}
-                                    {isAdmin && <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="w-full py-2 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-600 uppercase hover:text-primary transition-all">+ Ajouter un Module</button>}
+                                    {isAdmin && <button onClick={() => openAddModal('module')} className="w-full py-2 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-600 uppercase hover:text-primary transition-all">+ Ajouter un Module</button>}
                                  </div>
                               )}
                            </div>
@@ -421,14 +370,19 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                <div className="space-y-6 animate-in fade-in duration-500">
                   <div className="flex justify-between items-center">
                      <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">Modules de Staff Scientifique</h3>
-                     {isAdmin && <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Nouveau Module</button>}
+                     {isAdmin && <button onClick={() => openAddModal('module')} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Nouveau Module</button>}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                      {staffModules.map(mod => (
                         <div key={mod.id} className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8 shadow-xl flex flex-col">
                            <div className="flex justify-between items-start mb-6">
                               <div className="size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><span className="material-symbols-outlined text-2xl">menu_book</span></div>
-                              {isAdmin && <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>}
+                              {isAdmin && (
+                                 <div className="flex gap-1">
+                                    <button onClick={() => openEditModal('module', mod)} className="size-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">edit</span></button>
+                                    <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="size-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                 </div>
+                              )}
                            </div>
                            <h4 className="text-white font-black text-base uppercase mb-2 leading-tight">{mod.name}</h4>
                            <p className="text-slate-500 text-[10px] font-medium mb-6 flex-1">{mod.description || "Présentations et cas cliniques."}</p>
@@ -443,7 +397,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                  </div>
                               ))}
                               {isAdmin && (
-                                 <button onClick={() => { setTargetModuleId(mod.id); setAddType('file'); setIsAddModalOpen(true); }} className="w-full py-3 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-500 uppercase hover:text-primary transition-all">+ Ajouter Fichier</button>
+                                 <button onClick={() => openAddModal('file', mod.id)} className="w-full py-3 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-500 uppercase hover:text-primary transition-all">+ Ajouter Fichier</button>
                               )}
                            </div>
                         </div>
@@ -456,7 +410,7 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                <div className="space-y-6 animate-in fade-in duration-500">
                   <div className="flex justify-between items-center">
                      <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest">Liste des Items {activeCategory.toUpperCase()}</h3>
-                     {isAdmin && <button onClick={() => { setAddType('item'); setIsAddModalOpen(true); }} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Ajouter un Item</button>}
+                     {isAdmin && <button onClick={() => openAddModal('item')} className="text-primary text-[10px] font-black uppercase flex items-center gap-1"><span className="material-symbols-outlined text-sm">add</span> Ajouter un Item</button>}
                   </div>
                   <div className="space-y-4">
                      {(activeCategory === 'epu' ? epuItems : diuItems).map(item => (
@@ -466,7 +420,12 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                  <h4 className="text-xl font-black text-white uppercase tracking-tight">{item.name}</h4>
                                  <div className="flex items-center gap-3 mt-1">
                                     <p className="text-slate-500 text-[10px] font-medium uppercase tracking-widest">{item.modules.length} modules thématiques</p>
-                                    {isAdmin && <button onClick={() => handleDeleteSubject(item.id, item.name)} className="text-red-500 hover:text-red-700 transition-colors"><span className="material-symbols-outlined text-xs">delete</span></button>}
+                                    {isAdmin && (
+                                       <div className="flex gap-2">
+                                          <button onClick={() => openEditModal('item', item)} className="text-blue-500 hover:text-blue-400 transition-colors"><span className="material-symbols-outlined text-xs">edit</span></button>
+                                          <button onClick={() => handleDeleteSubject(item.id, item.name)} className="text-red-500 hover:text-red-700 transition-colors"><span className="material-symbols-outlined text-xs">delete</span></button>
+                                       </div>
+                                    )}
                                  </div>
                               </div>
                               <button onClick={() => setSelectedItemId(selectedItemId === item.id ? null : item.id)} className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase transition-all ${selectedItemId === item.id ? 'bg-white text-primary shadow-2xl' : 'bg-primary text-white shadow-xl'}`}>{selectedItemId === item.id ? "Replier" : "Développer l'Item"}</button>
@@ -477,7 +436,12 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                     <div key={mod.id} className="p-6 rounded-2xl bg-black/20 border border-white/5 relative group">
                                        <div className="flex justify-between items-start mb-4">
                                           <h5 className="text-xs font-black text-primary uppercase">{mod.name}</h5>
-                                          {isAdmin && <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="size-7 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"><span className="material-symbols-outlined text-xs">delete</span></button>}
+                                          {isAdmin && (
+                                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                <button onClick={() => openEditModal('module', mod)} className="size-7 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white"><span className="material-symbols-outlined text-xs">edit</span></button>
+                                                <button onClick={() => handleDeleteModule(mod.id, mod.name)} className="size-7 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white"><span className="material-symbols-outlined text-xs">delete</span></button>
+                                             </div>
+                                          )}
                                        </div>
                                        <div className="space-y-2">
                                           {mod.files.map(f => (
@@ -490,12 +454,12 @@ const Education: React.FC<EducationProps> = ({ user }) => {
                                              </div>
                                           ))}
                                           {isAdmin && (
-                                             <button onClick={() => { setTargetModuleId(mod.id); setAddType('file'); setIsAddModalOpen(true); }} className="w-full py-2 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-500 uppercase hover:text-primary transition-all">+ Fichier</button>
+                                             <button onClick={() => openAddModal('file', mod.id)} className="w-full py-2 border border-dashed border-white/10 rounded-xl text-[8px] font-black text-slate-500 uppercase hover:text-primary transition-all">+ Fichier</button>
                                           )}
                                        </div>
                                     </div>
                                  ))}
-                                 {isAdmin && <button onClick={() => { setAddType('module'); setIsAddModalOpen(true); }} className="p-6 border-2 border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-primary/30 transition-all text-slate-600"><span className="material-symbols-outlined">add_circle</span><span className="text-[10px] font-black uppercase">Nouveau Module</span></button>}
+                                 {isAdmin && <button onClick={() => openAddModal('module')} className="p-6 border-2 border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-primary/30 transition-all text-slate-600"><span className="material-symbols-outlined">add_circle</span><span className="text-[10px] font-black uppercase">Nouveau Module</span></button>}
                               </div>
                            )}
                         </div>

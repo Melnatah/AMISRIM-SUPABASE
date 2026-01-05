@@ -1,8 +1,16 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { LeisureEvent, LeisureFund } from '../types';
 import { leisure, storage } from '../services/api';
+
+const getImageUrl = (url?: string) => {
+   if (!url) return 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000';
+   if (url.startsWith('http')) return url;
+   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+   const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+   const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+   return `${cleanBase}${cleanUrl}`;
+};
 
 type EventType = 'voyage' | 'pique-nique' | 'fete';
 type ViewTab = 'explorer' | 'gestion';
@@ -24,7 +32,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
       return 'all';
    };
 
-   const activeFilter = getFilterFromPath();
+   const [activeFilter, setActiveFilter] = useState<EventType | 'all'>(getFilterFromPath());
    const [activeTab, setActiveTab] = useState<ViewTab>(isAdmin ? 'gestion' : 'explorer');
 
    const [events, setEvents] = useState<LeisureEvent[]>([]);
@@ -33,6 +41,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
    const [loading, setLoading] = useState(true);
 
    const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+   const [editingEventId, setEditingEventId] = useState<string | null>(null);
    const [isFundOpen, setIsFundOpen] = useState(false);
    const [selectedFund, setSelectedFund] = useState<LeisureFund | null>(null);
    const [contributionAmount, setContributionAmount] = useState('');
@@ -55,16 +64,8 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
             leisure.getEvents(),
             leisure.getContributions()
          ]);
-
-         // Helper to map backend event structure to frontend if needed
-         // Assuming backend returns events with participants and funds
-         // If funds are separate, we might need adjustments.
-         // For now, mapping as is.
          setEvents(eventsData || []);
-         // Start with inferred funds from events if not returned separately
-         // setFunds(fundsData || []);
-         // Actually, let's assume events contain needed info or we accept lighter data for now.
-
+         setFunds([]); // Assuming funds are derived or fetched separately if implemented
          setContributions(contribData || []);
       } catch (error) {
          console.error(error);
@@ -75,7 +76,6 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
    useEffect(() => {
       fetchData();
-      // Realtime subscription removed
    }, []);
 
    const handleRegister = async (eventId: string) => {
@@ -97,11 +97,31 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
       }
    };
 
+   const handleEditClick = (event: LeisureEvent) => {
+      const dateStr = event.eventDate ? new Date(event.eventDate).toISOString().split('T')[0] : (event.date ? event.date.split('T')[0] : '');
+      setNewEvent({
+         title: event.title,
+         type: (event.type as EventType) || 'voyage',
+         date: dateStr,
+         location: event.location || '',
+         description: event.description || '',
+         costPerPerson: event.costPerPerson?.toString() || '',
+         maxParticipants: event.maxParticipants?.toString() || '',
+         imageUrl: event.imageUrl || ''
+      });
+      setEventImage(null);
+      setEditingEventId(event.id);
+      setIsAddEventOpen(true);
+   };
+
    const handleCreateEvent = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
-         // Simplified image handling (URL only for now unless we implement upload properly)
-         let finalImageUrl = newEvent.imageUrl || 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000';
+         let finalImageUrl = newEvent.imageUrl || '';
+         // Default image if creating fresh
+         if (!finalImageUrl && !editingEventId) {
+            finalImageUrl = 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000';
+         }
 
          if (eventImage) {
             try {
@@ -110,7 +130,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
             } catch (e) { console.error("Upload failed", e); alert("Echec upload image"); }
          }
 
-         await leisure.createEvent({
+         const payload = {
             title: newEvent.title,
             description: newEvent.description,
             type: newEvent.type,
@@ -119,14 +139,21 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
             costPerPerson: newEvent.costPerPerson ? Number(newEvent.costPerPerson) : undefined,
             maxParticipants: newEvent.maxParticipants ? Number(newEvent.maxParticipants) : undefined,
             imageUrl: finalImageUrl
-         });
+         };
+
+         if (editingEventId) {
+            await leisure.updateEvent(editingEventId, payload);
+         } else {
+            await leisure.createEvent(payload);
+         }
 
          setIsAddEventOpen(false);
          setNewEvent({ title: '', type: 'voyage', date: '', location: '', description: '', costPerPerson: '', maxParticipants: '', imageUrl: '' });
          setEventImage(null);
+         setEditingEventId(null);
          fetchData();
       } catch (error: any) {
-         alert("Erreur lors de la création : " + error.message);
+         alert("Erreur lors de la sauvegarde : " + error.message);
       }
    };
 
@@ -141,7 +168,6 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
    const deleteFund = async (id: string, title: string) => {
       if (window.confirm(`Supprimer la caisse "${title}" ?`)) {
-         // Mock delete
          alert("Supprimé (Simulation)");
       }
    };
@@ -193,12 +219,17 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
 
    return (
       <div className="flex h-full flex-col overflow-y-auto bg-background-light dark:bg-background-dark p-4 md:p-10 font-jakarta relative">
-         {isAdmin && <button onClick={() => setIsAddEventOpen(true)} className="fixed bottom-20 right-6 size-14 rounded-full bg-primary text-white shadow-2xl z-[60] flex items-center justify-center hover:scale-110 transition-all"><span className="material-symbols-outlined text-3xl">add</span></button>}
+         {isAdmin && <button onClick={() => {
+            setEditingEventId(null);
+            setNewEvent({ title: '', type: 'voyage', date: '', location: '', description: '', costPerPerson: '', maxParticipants: '', imageUrl: '' });
+            setEventImage(null);
+            setIsAddEventOpen(true);
+         }} className="fixed bottom-20 right-6 size-14 rounded-full bg-primary text-white shadow-2xl z-[60] flex items-center justify-center hover:scale-110 transition-all"><span className="material-symbols-outlined text-3xl">add</span></button>}
 
          {isAddEventOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
                <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] p-8 w-full max-w-3xl overflow-y-auto max-h-[90vh]">
-                  <h3 className="text-xl font-black text-white uppercase mb-8">Organiser un Événement</h3>
+                  <h3 className="text-xl font-black text-white uppercase mb-8">{editingEventId ? 'Modifier l\'événement' : 'Organiser un Événement'}</h3>
                   <form onSubmit={handleCreateEvent} className="space-y-6 text-white text-xs">
                      <div className="grid grid-cols-3 gap-4">
                         {(['voyage', 'pique-nique', 'fete'] as const).map(t => (
@@ -297,17 +328,25 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                         return (
                            <div key={e.id} className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden group hover:border-primary/50 transition-all border-transparent">
                               <div className="relative h-60">
-                                 <img src={e.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+                                 <img src={getImageUrl(e.imageUrl)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
                                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 to-transparent" />
 
-                                 {/* Delete button for admins */}
+                                 {/* Edit/Delete buttons for admins */}
                                  {isAdmin && (
-                                    <button
-                                       onClick={() => deleteEvent(e.id)}
-                                       className="absolute top-4 right-4 size-10 rounded-xl bg-red-500/20 backdrop-blur-md border border-red-500/30 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
-                                    >
-                                       <span className="material-symbols-outlined text-lg">delete</span>
-                                    </button>
+                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                       <button
+                                          onClick={() => handleEditClick(e)}
+                                          className="size-10 rounded-xl bg-blue-500/20 backdrop-blur-md border border-blue-500/30 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"
+                                       >
+                                          <span className="material-symbols-outlined text-lg">edit</span>
+                                       </button>
+                                       <button
+                                          onClick={() => deleteEvent(e.id)}
+                                          className="size-10 rounded-xl bg-red-500/20 backdrop-blur-md border border-red-500/30 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
+                                       >
+                                          <span className="material-symbols-outlined text-lg">delete</span>
+                                       </button>
+                                    </div>
                                  )}
 
                                  <div className="absolute bottom-6 left-6 right-6">
@@ -329,7 +368,7 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                               </div>
                               <div className="p-8">
                                  <div className="flex justify-between text-[11px] font-bold text-slate-300 mb-6 uppercase">
-                                    <span>{e.date} • {e.location}</span>
+                                    <span>{new Date(e.eventDate || e.date).toLocaleDateString()} • {e.location}</span>
                                     <span className="text-primary">{e.registeredParticipants} / {e.maxParticipants || '∞'} PLACES</span>
                                  </div>
                                  <button
@@ -373,8 +412,6 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                               const fund = funds.find(f => f.eventId === selectedEventForFinance);
                               const event = events.find(e => e.id === selectedEventForFinance);
                               if (!fund || !event) return <p className="text-slate-500 font-bold italic uppercase text-[10px]">Aucune caisse liée à cette activité.</p>;
-
-                              const eventContribs = contributions.filter(c => c.fund_id === fund.id);
 
                               return (
                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -517,7 +554,12 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                   <div className="bg-surface-dark border border-surface-highlight rounded-[2.5rem] overflow-hidden">
                      <div className="px-10 py-8 border-b border-white/5 flex justify-between">
                         <h3 className="text-white font-black text-sm uppercase">Toutes les Activités</h3>
-                        <button onClick={() => setIsAddEventOpen(true)} className="text-[10px] font-black text-primary uppercase">+ Ajouter</button>
+                        <button onClick={() => {
+                           setEditingEventId(null);
+                           setNewEvent({ title: '', type: 'voyage', date: '', location: '', description: '', costPerPerson: '', maxParticipants: '', imageUrl: '' });
+                           setEventImage(null);
+                           setIsAddEventOpen(true);
+                        }} className="text-[10px] font-black text-primary uppercase">+ Ajouter</button>
                      </div>
                      <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs text-white">
@@ -528,7 +570,10 @@ const Loisir: React.FC<LoisirProps> = ({ user }) => {
                                     <td className="px-10 py-6 font-black uppercase font-medium">{e.title}</td>
                                     <td className="px-6 py-6 uppercase">{e.type}</td>
                                     <td className="px-6 py-6 font-black text-primary">{e.registeredParticipants} / {e.maxParticipants || '∞'}</td>
-                                    <td className="px-10 py-6 text-right"><button onClick={() => deleteEvent(e.id)} className="text-red-500 opacity-50 hover:opacity-100"><span className="material-symbols-outlined text-sm">delete</span></button></td>
+                                    <td className="px-10 py-6 text-right space-x-2">
+                                       <button onClick={() => handleEditClick(e)} className="text-blue-500 opacity-50 hover:opacity-100"><span className="material-symbols-outlined text-sm">edit</span></button>
+                                       <button onClick={() => deleteEvent(e.id)} className="text-red-500 opacity-50 hover:opacity-100"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                    </td>
                                  </tr>
                               ))}
                            </tbody>
