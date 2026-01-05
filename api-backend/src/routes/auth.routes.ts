@@ -265,4 +265,39 @@ router.post('/refresh', async (req: Request, res: Response, next) => {
     }
 });
 
+// Alias for register (used by Admin Dashboard)
+router.post('/register', async (req: Request, res: Response, next) => {
+    try {
+        const data = signupSchema.parse(req.body);
+
+        const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
+        if (existingUser) throw new AppError('Un compte existe déjà avec cet email', 400, 'USER_EXISTS');
+
+        const passwordHash = await bcrypt.hash(data.password, 10);
+
+        const result = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({ data: { email: data.email, passwordHash } });
+            const profile = await tx.profile.create({
+                data: {
+                    userId: user.id,
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    email: data.email,
+                    phone: data.phone,
+                    year: data.year,
+                    hospital: data.hospital,
+                    role: 'resident',
+                    status: 'pending',
+                },
+            });
+            return { user, profile };
+        });
+
+        res.status(201).json({
+            message: 'User created successfully',
+            user: { id: result.profile.id, role: result.profile.role, email: result.user.email }
+        });
+    } catch (error) { next(error); }
+});
+
 export default router;
