@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import multer from 'multer';
+import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '../lib/prisma.js';
@@ -152,7 +153,24 @@ router.post('/me/avatar', authenticate, avatarUpload.single('avatar'), async (re
             throw new AppError('No file uploaded', 400);
         }
 
-        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        // OPTIMIZATION: Resize and compress image
+        const originalPath = req.file.path;
+        const optimizedFilename = `opt-${req.file.filename.split('.')[0]}.jpg`;
+        const optimizedPath = path.join(path.dirname(originalPath), optimizedFilename);
+
+        await sharp(originalPath)
+            .resize(500, 500, { fit: 'cover', position: 'center' })
+            .jpeg({ quality: 80, mozjpeg: true })
+            .toFile(optimizedPath);
+
+        // Remove original large file to save space
+        try {
+            fs.unlinkSync(originalPath);
+        } catch (err) {
+            console.error('Error removing original file:', err);
+        }
+
+        const avatarUrl = `/uploads/avatars/${optimizedFilename}`;
 
         // Update profile with new avatar URL
         const profile = await prisma.profile.update({

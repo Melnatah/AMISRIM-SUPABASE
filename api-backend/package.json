@@ -32,6 +32,7 @@
     "dependencies": {
         "@prisma/client": "^5.22.0",
         "bcryptjs": "^2.4.3",
+        "compression": "^1.7.5",
         "cors": "^2.8.5",
         "dotenv": "^16.4.5",
         "express": "^4.21.2",
@@ -40,12 +41,14 @@
         "jsonwebtoken": "^9.0.2",
         "multer": "^1.4.5-lts.1",
         "pg": "^8.13.1",
+        "sharp": "^0.33.5",
         "socket.io": "^4.8.1",
         "uuid": "^11.0.5",
         "zod": "^3.24.1"
     },
     "devDependencies": {
         "@types/bcryptjs": "^2.4.6",
+        "@types/compression": "^1.7.5",
         "@types/cors": "^2.8.17",
         "@types/express": "^5.0.0",
         "@types/express-fileupload": "^1.5.1",

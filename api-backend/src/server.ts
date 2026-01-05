@@ -1,6 +1,7 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -65,6 +66,7 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
+app.use(compression());
 app.use(cors({
     origin,
     credentials: true,
