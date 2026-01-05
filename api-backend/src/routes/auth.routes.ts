@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -164,10 +165,10 @@ const handleSignup = async (req: Request, res: Response, next: any) => {
 };
 
 // POST /api/auth/register (main registration endpoint for frontend)
-router.post('/register', handleSignup);
+router.post('/register', authRateLimiter, handleSignup);
 
 // POST /api/auth/login
-router.post('/login', async (req: Request, res: Response, next) => {
+router.post('/login', authRateLimiter, async (req: Request, res: Response, next) => {
     try {
         const data = loginSchema.parse(req.body);
 

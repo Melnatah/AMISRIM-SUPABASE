@@ -2,6 +2,7 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -38,6 +39,9 @@ import searchRoutes from './routes/search.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 
+// Import Prisma client
+import { prisma } from './lib/prisma.js';
+
 // Import WebSocket handler
 import { initializeWebSocket } from './websocket/index.js';
 
@@ -68,6 +72,10 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 app.use(compression());
+
+// HTTP request logging (combined format in production, dev format in development)
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
 app.use(cors({
     origin,
     credentials: true,
@@ -83,13 +91,31 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
     lastModified: true
 }));
 
-// Health check
-app.get('/health', (req: Request, res: Response) => {
-    res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-    });
+// Health check with database verification
+app.get('/health', async (req: Request, res: Response) => {
+    try {
+        // Test database connection
+        await prisma.$queryRaw`SELECT 1`;
+
+        res.json({
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            database: 'connected',
+            memory: {
+                used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+                total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+                unit: 'MB'
+            }
+        });
+    } catch (error) {
+        res.status(503).json({
+            status: 'error',
+            timestamp: new Date().toISOString(),
+            database: 'disconnected',
+            error: 'Database connection failed'
+        });
+    }
 });
 
 // API Routes

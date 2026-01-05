@@ -13,12 +13,28 @@ dist
 dist-ssr
 *.local
 
-# Environnement et Secrets
+# Environnement et Secrets (CRITIQUE)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+*.env
+api-backend/.env
 *.pem
 *.key
+*.p12
+*.pfx
+
+# Uploads et fichiers utilisateurs
+uploads/
+api-backend/uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+!public/**/*.jpg
+!public/**/*.png
+!public/**/*.gif
 
 # Editor directories and files
 .vscode/*
@@ -33,4 +49,27 @@ dist-ssr
 
 # Fichiers de build Docker locaux
 docker-compose.yml
-# On garde les fichiers api-backend car ils sont dans le même repo
+Dockerfile.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# OS
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Backups
+*.backup
+*.bak
+*.tmp
+*.swp
+*~
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output

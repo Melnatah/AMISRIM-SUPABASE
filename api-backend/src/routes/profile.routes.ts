@@ -29,13 +29,17 @@ const avatarUpload = multer({
     storage: avatarStorage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
     fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif|webp/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
+        // Strict MIME type whitelist
+        const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const allowedExtensions = /jpeg|jpg|png|gif|webp/;
+
+        const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedMimeTypes.includes(file.mimetype);
+
         if (extname && mimetype) {
             cb(null, true);
         } else {
-            cb(new Error('Seules les images (JPEG, PNG, GIF, WebP) sont autorisées'));
+            cb(new Error(`Type de fichier non autorisé. Formats acceptés: ${allowedMimeTypes.join(', ')}`));
         }
     }
 });
