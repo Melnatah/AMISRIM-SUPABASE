@@ -258,8 +258,18 @@ const Education: React.FC<EducationProps> = ({ user }) => {
    };
 
    const handleDownload = (url: string, name: string) => {
-      if (!url) return;
-      window.open(url, '_blank');
+      // Robustesse : Si l'URL est relative (commence par /), on ajoute l'URL de l'API
+      const fullUrl = url.startsWith('/')
+         ? `${import.meta.env.VITE_API_URL || 'https://api-amisrim.jadeoffice.cloud'}${url}`
+         : url;
+
+      const link = document.createElement('a');
+      link.href = fullUrl;
+      link.download = name;
+      link.target = '_blank'; // Ouvrir dans un nouvel onglet par sécurité
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
    };
 
    if (loading) {

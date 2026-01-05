@@ -15,6 +15,11 @@ import authRoutes from './routes/auth.routes.js';
 // @ts-ignore
 BigInt.prototype.toJSON = function () { return Number(this) }
 
+import { Prisma } from '@prisma/client';
+// Polyfill for Decimal serialization
+// @ts-ignore
+Prisma.Decimal.prototype.toJSON = function () { return this.toNumber() }
+
 import profileRoutes from './routes/profile.routes.js';
 import siteRoutes from './routes/site.routes.js';
 import moduleRoutes from './routes/module.routes.js';
