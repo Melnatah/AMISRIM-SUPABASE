@@ -29,7 +29,17 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
             },
             orderBy: { createdAt: 'desc' },
         });
-        res.json(subjects);
+
+        // Convert BigInt to Number for serialization if files exist
+        const serializedSubjects = subjects.map((s: any) => ({
+            ...s,
+            files: s.files.map((f: any) => ({
+                ...f,
+                size: Number(f.size)
+            }))
+        }));
+
+        res.json(serializedSubjects);
     } catch (error) {
         next(error);
     }

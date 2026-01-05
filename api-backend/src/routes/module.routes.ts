@@ -33,7 +33,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response, next) => {
         // Convert BigInt to Number for serialization
         const serializedModules = modules.map(m => ({
             ...m,
-            files: m.files.map(f => ({
+            files: m.files.map((f: any) => ({
                 ...f,
                 size: Number(f.size)
             }))
