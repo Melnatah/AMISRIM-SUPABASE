@@ -31,8 +31,14 @@ const AdminSettings: React.FC = () => {
   const [allContributions, setAllContributions] = useState<any[]>([]);
   const [pendingAttendance, setPendingAttendance] = useState<any[]>([]);
 
-  // User filter state (new)
+  // User filter state
   const [userFilter, setUserFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>('all');
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Bulk selection state
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   // Approval modal state
   const [approvalModal, setApprovalModal] = useState<{ isOpen: boolean; user: PendingUser | null; selectedRole: 'resident' | 'admin' }>({
@@ -310,6 +316,114 @@ const AdminSettings: React.FC = () => {
     alert(`Message diffusé à tous les résidents (Simulation).`);
     setBroadcastMsg('');
   };
+
+  // Bulk Actions
+  const handleSelectAll = () => {
+    const filteredUserIds = getFilteredUsers().map(u => u.id);
+    if (selectedUsers.length === filteredUserIds.length) {
+      setSelectedUsers([]);
+    } else {
+      setSelectedUsers(filteredUserIds);
+    }
+  };
+
+  const handleToggleUser = (userId: string) => {
+    setSelectedUsers(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedUsers.length === 0) return;
+    if (!window.confirm(`Approuver ${selectedUsers.length} utilisateur(s) ?`)) return;
+
+    try {
+      for (const userId of selectedUsers) {
+        await profiles.updateStatus(userId, 'approved');
+      }
+      alert(`${selectedUsers.length} utilisateur(s) approuvé(s) avec succès !`);
+      setSelectedUsers([]);
+      fetchApprovedUsers();
+      fetchPendingUsers();
+    } catch (error) {
+      console.error('Error bulk approving:', error);
+      alert('Erreur lors de l\'approbation groupée');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedUsers.length === 0) return;
+    if (!window.confirm(`ATTENTION : Supprimer définitivement ${selectedUsers.length} utilisateur(s) ?`)) return;
+
+    try {
+      for (const userId of selectedUsers) {
+        await profiles.delete(userId);
+      }
+      alert(`${selectedUsers.length} utilisateur(s) supprimé(s)`);
+      setSelectedUsers([]);
+      fetchApprovedUsers();
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+      alert('Erreur lors de la suppression groupée');
+    }
+  };
+
+  // Export to Excel
+  const handleExportUsers = () => {
+    const users = getFilteredUsers();
+    const csv = [
+      ['Nom', 'Email', 'Hôpital', 'Année', 'Rôle', 'Statut', 'Date d\'inscription'].join(','),
+      ...users.map(u => [
+        u.name,
+        u.email,
+        u.hospital,
+        u.year,
+        u.role,
+        u.status,
+        u.date
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `utilisateurs_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  const handleExportContributions = () => {
+    const csv = [
+      ['Contributeur', 'Montant', 'Mois', 'Statut', 'Date'].join(','),
+      ...allContributions.map(c => [
+        c.contributor_name || 'N/A',
+        c.amount,
+        c.month || 'N/A',
+        c.status || 'N/A',
+        new Date(c.created_at).toLocaleDateString('fr-FR')
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `contributions_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  // Filter users based on search and status
+  const getFilteredUsers = () => {
+    return approvedUsers
+      .filter(u => userFilter === 'all' || u.status === userFilter)
+      .filter(u =>
+        searchQuery === '' ||
+        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.hospital.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+  };
+
 
   const systemStatus = [
     { label: 'PACS Gateway', status: pacsUrl ? 'Configuré' : 'Non défini', color: pacsUrl ? 'text-emerald-500' : 'text-amber-500' },
@@ -626,45 +740,116 @@ const AdminSettings: React.FC = () => {
                   </button>
                 </div>
 
+                {/* Search Bar & Export */}
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                  <div className="flex-1 relative">
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
+                    <input
+                      type="text"
+                      placeholder="Rechercher par nom, email ou hôpital..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-black/30 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white text-sm outline-none focus:border-primary transition-all placeholder:text-slate-600"
+                    />
+                  </div>
+                  <button
+                    onClick={handleExportUsers}
+                    className="px-4 py-3 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded-xl uppercase flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all whitespace-nowrap"
+                  >
+                    <span className="material-symbols-outlined text-sm">download</span>
+                    Exporter CSV
+                  </button>
+                </div>
+
+                {/* Bulk Actions Bar */}
+                {selectedUsers.length > 0 && (
+                  <div className="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-3">
+                      <span className="size-8 rounded-lg bg-primary text-white flex items-center justify-center font-black text-sm">{selectedUsers.length}</span>
+                      <span className="text-sm font-bold text-white">utilisateur(s) sélectionné(s)</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleBulkApprove}
+                        className="px-4 py-2 bg-emerald-500/10 text-emerald-500 text-[10px] font-black rounded-xl uppercase hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        Approuver
+                      </button>
+                      <button
+                        onClick={handleBulkDelete}
+                        className="px-4 py-2 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-white transition-all flex items-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-sm">delete</span>
+                        Supprimer
+                      </button>
+                      <button
+                        onClick={() => setSelectedUsers([])}
+                        className="px-4 py-2 bg-white/5 text-slate-400 text-[10px] font-black rounded-xl uppercase hover:bg-white/10 transition-all"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Select All Checkbox */}
+                {getFilteredUsers().length > 0 && (
+                  <div className="mb-4 flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.length === getFilteredUsers().length && getFilteredUsers().length > 0}
+                      onChange={handleSelectAll}
+                      className="size-4 rounded border-white/20 bg-white/10 checked:bg-primary cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Tout sélectionner</span>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {approvedUsers
-                    .filter(u => userFilter === 'all' || u.status === userFilter)
-                    .map(user => (
-                      <div key={user.id} className="flex flex-col p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all gap-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-4">
-                            <div className={`size-12 rounded-2xl flex items-center justify-center font-black text-lg ${user.role === 'admin' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-primary/20 text-primary border border-primary/20'}`}>
-                              {user.name.split(' ')[1]?.[0] || user.name[0]}
-                            </div>
-                            <div>
-                              <p className="text-base font-black text-white flex items-center gap-2">
-                                {user.name}
-                                {user.role === 'admin' && <span className="material-symbols-outlined text-[14px] text-amber-500" title="Administrateur">verified_user</span>}
-                              </p>
-                              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{user.hospital} • {user.year}</p>
-                            </div>
+                  {getFilteredUsers().map(user => (
+                    <div key={user.id} className="flex flex-col p-6 rounded-3xl bg-white/5 border border-white/5 hover:border-primary/30 transition-all gap-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-4">
+                          {/* Checkbox for bulk selection */}
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(user.id)}
+                            onChange={() => handleToggleUser(user.id)}
+                            className="size-4 rounded border-white/20 bg-white/10 checked:bg-primary cursor-pointer shrink-0"
+                          />
+                          <div className={`size-12 rounded-2xl flex items-center justify-center font-black text-lg ${user.role === 'admin' ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-primary/20 text-primary border border-primary/20'}`}>
+                            {user.name.split(' ')[1]?.[0] || user.name[0]}
                           </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="px-3 py-1 bg-white/5 rounded-lg border border-white/10 text-[10px] font-bold text-slate-400 uppercase">{user.role}</div>
-                            {/* Status Badge */}
-                            <div className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${user.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
-                              user.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
-                                'bg-red-500/10 text-red-500 border border-red-500/20'
-                              }`}>
-                              {user.status === 'approved' ? '✓ Actif' : user.status === 'pending' ? '⏳ En attente' : '✗ Refusé'}
-                            </div>
+                          <div>
+                            <p className="text-base font-black text-white flex items-center gap-2">
+                              {user.name}
+                              {user.role === 'admin' && <span className="material-symbols-outlined text-[14px] text-amber-500" title="Administrateur">verified_user</span>}
+                            </p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{user.hospital} • {user.year}</p>
                           </div>
                         </div>
-                        <div className="flex gap-2 mt-2 pt-4 border-t border-white/5">
-                          {user.role !== 'admin' ? (
-                            <button onClick={() => handlePromoteUser(user.id)} className="flex-1 py-2 bg-indigo-500/10 text-indigo-400 text-[10px] font-black rounded-xl uppercase hover:bg-indigo-500 hover:text-white transition-all">Promouvoir Admin</button>
-                          ) : (
-                            <button onClick={() => handleDemoteUser(user.id)} className="flex-1 py-2 bg-amber-500/10 text-amber-500 text-[10px] font-black rounded-xl uppercase hover:bg-amber-500 hover:text-white transition-all">Rétrograder</button>
-                          )}
-                          <button onClick={() => handleDeleteUser(user.id, user.name)} className="px-4 py-2 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="px-3 py-1 bg-white/5 rounded-lg border border-white/10 text-[10px] font-bold text-slate-400 uppercase">{user.role}</div>
+                          {/* Status Badge */}
+                          <div className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${user.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                            user.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' :
+                              'bg-red-500/10 text-red-500 border border-red-500/20'
+                            }`}>
+                            {user.status === 'approved' ? '✓ Actif' : user.status === 'pending' ? '⏳ En attente' : '✗ Refusé'}
+                          </div>
                         </div>
                       </div>
-                    ))}
+                      <div className="flex gap-2 mt-2 pt-4 border-t border-white/5">
+                        {user.role !== 'admin' ? (
+                          <button onClick={() => handlePromoteUser(user.id)} className="flex-1 py-2 bg-indigo-500/10 text-indigo-400 text-[10px] font-black rounded-xl uppercase hover:bg-indigo-500 hover:text-white transition-all">Promouvoir Admin</button>
+                        ) : (
+                          <button onClick={() => handleDemoteUser(user.id)} className="flex-1 py-2 bg-amber-500/10 text-amber-500 text-[10px] font-black rounded-xl uppercase hover:bg-amber-500 hover:text-white transition-all">Rétrograder</button>
+                        )}
+                        <button onClick={() => handleDeleteUser(user.id, user.name)} className="px-4 py-2 bg-red-500/10 text-red-500 text-[10px] font-black rounded-xl uppercase hover:bg-red-500 hover:text-white transition-all"><span className="material-symbols-outlined text-sm">delete</span></button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -695,6 +880,13 @@ const AdminSettings: React.FC = () => {
                     <span className="material-symbols-outlined text-emerald-500">history</span>
                     Dernières Transactions
                   </h3>
+                  <button
+                    onClick={handleExportContributions}
+                    className="px-3 py-2 bg-emerald-500/10 text-emerald-500 text-[9px] font-black rounded-lg uppercase flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all"
+                  >
+                    <span className="material-symbols-outlined text-xs">download</span>
+                    Export
+                  </button>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
