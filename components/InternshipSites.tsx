@@ -480,7 +480,18 @@ const InternshipSites: React.FC<InternshipSitesProps> = ({ user }) => {
                       </div>
                       <div>
                         <p className="text-[8px] font-black text-slate-600 uppercase">Adresse</p>
-                        <p className="text-[11px] font-black text-white">{site.location || 'Non renseigné'}</p>
+                        <p className="text-[11px] font-black text-white">{site.address || 'Non renseigné'}</p>
+                        {site.address && (
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(site.address)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[9px] text-primary hover:text-primary-dark flex items-center gap-1 mt-1 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-xs">navigation</span>
+                            Voir sur Maps
+                          </a>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4 bg-background-dark/20 p-5 rounded-[2rem] border border-white/5">
